@@ -4,6 +4,7 @@ import numpy as np
 import itertools
 import random
 import sys
+from multiprocessing import Pool, Manager
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -22,8 +23,8 @@ import ray
 
 from functools import partial
 
+from d_case_difficulty_metrics.api import PATH
 from d_case_difficulty_metrics.compute_case_difficulty.processing import (
-    preprocessor,
     check_curr_status,
 )
 
@@ -94,9 +95,9 @@ def objective(X_without_test, y_without_test, processing, config):
     return {"val_loss": val_loss}
 
 
-def hyperparm_searching(file_name, data, cat_columns, num_columns, target_column):
+def hyperparm_searching(hyper_file_name, data, processing, target_column):
     n_samples = len(data)
-    starting = check_curr_status(n_samples, file_name)
+    starting = check_curr_status(n_samples, PATH + hyper_file_name)
 
     # Generate combinations of layers and neurons
     neurons = [5, 10, 15, 20]
@@ -107,6 +108,7 @@ def hyperparm_searching(file_name, data, cat_columns, num_columns, target_column
     ]
 
     # Initialize an empty DataFrame
+    curr_df = pd.read_excel(PATH + hyper_file_name)
     results_df = pd.DataFrame(
         columns=["Index", "LearnRate", "BatchSize", "Activation", "HiddenLayerSizes"]
     )
@@ -116,13 +118,9 @@ def hyperparm_searching(file_name, data, cat_columns, num_columns, target_column
             X_overall = data.drop(columns=[target_column], axis=1)
             y_overall = data[target_column]
 
-            print("X_overall:", X_overall)
-
             X_without_test = X_overall.drop(index=[index])
             y_without_test = y_overall.drop(index=[index])
-            processing = preprocessor(cat_columns, num_columns)
 
-            print("X_without_test:", X_without_test)
             configured_objective = partial(
                 objective, X_without_test, y_without_test, processing
             )
@@ -139,7 +137,7 @@ def hyperparm_searching(file_name, data, cat_columns, num_columns, target_column
                 tune_config=tune.TuneConfig(
                     metric="val_loss",
                     mode="min",
-                    num_samples=10,
+                    num_samples=3,
                     search_alg=HyperOptSearch(),
                 ),
                 run_config=ray.air.config.RunConfig(verbose=0),
@@ -161,23 +159,207 @@ def hyperparm_searching(file_name, data, cat_columns, num_columns, target_column
             results_df = results_df.append(rows, ignore_index=True)
 
         # Save the DataFrame to Excel once after the loop completes
-        results_df.to_excel(
-            "./d_case_difficulty_metrics/result/CDpu_hyperparam.xlsx", index=False
-        )
+        curr_df = pd.concat([curr_df, results_df], ignore_index=True)
+        curr_df.to_excel(PATH + hyper_file_name, index=False)
 
     except KeyboardInterrupt:
         print("Keyboard error occurred")
-        results_df.to_excel(
-            "./d_case_difficulty_metrics/result/CDpu_hyperparam_interrupted.xlsx",
-            index=False,
+        results_df.to_excel(PATH + "interrupted_" + hyper_file_name, index=False)
+        sys.exit(0)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        print("An error occurred")
+        results_df.to_excel(PATH + "error_" + hyper_file_name, index=False)
+
+    finally:
+        ray.shutdown()
+
+
+# Model Complexity (NN)
+def nn_model_complexity_multiprocessing(
+    X_train, X_val, y_train, y_val, X_test, processing, best_params
+):
+    num_classes = len(unique_labels(y_train))
+    if num_classes > 2:
+        y_train = np_utils.to_categorical(y_train, num_classes)
+        y_val = np_utils.to_categorical(y_val, num_classes)
+        loss_function = "categorical_crossentropy"
+        output_activation = "softmax"
+    else:
+        num_classes = 1
+        loss_function = "binary_crossentropy"
+        output_activation = "sigmoid"
+
+    X_train_processed = processing.fit_transform(X_train)
+    X_val_processed = processing.transform(X_val)
+    X_test_processed = processing.transform(X_test)
+
+    model = tf.keras.models.Sequential()
+    # First hidden layer with input shape
+    model.add(
+        tf.keras.layers.Dense(
+            best_params["hidden_layer_sizes"][0],
+            input_shape=(X_train_processed.shape[1],),
+            activation=best_params["activation"],
         )
+    )
+    for i in range(1, len(best_params["hidden_layer_sizes"])):
+        # from second hidden layer to number of hidden layers
+        model.add(
+            tf.keras.layers.Dense(
+                best_params["hidden_layer_sizes"][i],
+                activation=best_params["activation"],
+            )
+        )
+    # Ouput layer
+    model.add(tf.keras.layers.Dense(num_classes, activation=output_activation))
+    model.compile(
+        loss=loss_function,
+        optimizer=Adam(learning_rate=best_params["learnRate"]),
+        metrics=["accuracy"],
+    )
+    es = EarlyStopping(monitor="val_loss", mode="min", verbose=0, patience=30)
+    model.fit(
+        X_train_processed,
+        y_train,
+        validation_data=(X_val_processed, y_val),
+        verbose=0,
+        batch_size=best_params["batch_size"],
+        epochs=100,
+        callbacks=[es],
+    )
+    difficulty = model.predict(X_test_processed, verbose=0)
+    return difficulty
+
+
+def multipool_predictions(
+    file_name,
+    hyper_file_name,
+    data,
+    processing,
+    target_column,
+    number_of_predictions,
+    number_of_cpu,
+):
+    hyper_param_df = pd.read_excel(
+        hyper_file_name,
+        index_col=None,
+        header=None,
+        names=["index", "learnRate", "batch_size", "activation", "hidden_layer_sizes"],
+    )
+
+    hyper_param_df["hidden_layer_sizes"] = hyper_param_df["hidden_layer_sizes"].apply(
+        lambda x: eval(x)
+    )
+
+    # Check hyperparam file prepared properly
+    if len(hyper_param_df) != len(data):
+        sys.exit("Error: Number of hyper_param is not enough.")
+
+    n_samples = len(data)
+    starting = check_curr_status(n_samples, file_name)
+
+    try:
+        all_row_values = []
+        for index in range(starting, 2):
+            X_overall = data.drop(columns=[target_column], axis=1)
+            y_overall = data[target_column]
+
+            X_test = X_overall.iloc[[index]]  # test case want to check the difficulty
+            y_test = y_overall[index]
+
+            X_without_test = X_overall.drop(index=[index])
+            y_without_test = y_overall.drop(index=[index])
+            param = hyper_param_df.iloc[index]
+
+            X_train_dataset = []
+            X_val_dataset = []
+            y_train_dataset = []
+            y_val_dataset = []
+
+            for _ in range(number_of_predictions):
+                X_train, X_val, y_train, y_val = train_test_split(
+                    X_without_test,
+                    y_without_test,
+                    test_size=0.3,
+                    random_state=random_generater(),
+                )
+                X_train_dataset.append(X_train)
+                X_val_dataset.append(X_val)
+                y_train_dataset.append(y_train)
+                y_val_dataset.append(y_val)
+
+            manager = Manager()
+            predicted_probabilities = manager.list()
+
+            def collect_result(result):
+                predicted_probabilities.append(result)
+
+            # Create a list of argument tuples
+            arg_list = [
+                (
+                    X_train_dataset[mm],
+                    X_val_dataset[mm],
+                    y_train_dataset[mm],
+                    y_val_dataset[mm],
+                    X_test,
+                    processing,
+                    param,
+                )
+                for mm in range(number_of_predictions)
+            ]
+
+            try:
+                pool = Pool(processes=number_of_cpu)
+                for args in arg_list:
+                    pool.apply_async(
+                        nn_model_complexity_multiprocessing,
+                        args,
+                        callback=collect_result,
+                    )
+                pool.close()
+                pool.join()
+
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt detected. Terminating...")
+                pool.terminate()
+                pool.join()
+
+            finally:
+                print("\n\npredicted_probabilities:", list(predicted_probabilities))
+
+                if len(predicted_probabilities) != number_of_predictions:
+                    results_df = pd.DataFrame(all_row_values)
+                    results_df.to_excel(PATH + "unmatching_" + file_name, index=False)
+                    sys.exit("Error: Number of predicted_probabilities does not match.")
+
+                else:
+                    # index, X_test, y_test, predicted_probabilities
+                    # binary class: single prediction, multiclass: each class prediction
+                    result_array = np.concatenate(
+                        [arr.flatten() for arr in predicted_probabilities]
+                    ).tolist()
+
+                    row_values = (
+                        [index]
+                        + [X_test[column][index] for column in X_test.columns]
+                        + [y_test]
+                        + result_array
+                    )
+                    all_row_values.append(row_values)
+                    print("all_row_values:", all_row_values)
+
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + file_name, index=False)
+
+    except KeyboardInterrupt:
+        print("Keyboard error occurred")
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
         sys.exit(0)
 
     except Exception:
         print("An error occurred")
-        results_df.to_excel(
-            "./d_case_difficulty_metrics/result/CDpu_hyperparam_error.xlsx", index=False
-        )
-
-    finally:
-        ray.shutdown()
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + "error_" + file_name, index=False)

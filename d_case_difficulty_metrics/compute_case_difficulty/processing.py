@@ -4,6 +4,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import os
 import pandas as pd
+import sys
 
 
 def preprocessor(categorical_columns, numeric_columns):
@@ -34,17 +35,18 @@ def check_curr_status(n_samples, file_name):
     if not os.path.isfile(file_name):
         print("File does not exist, starting from index 0.")
         return 0
-
     try:
         data = pd.read_excel(file_name)
-        starting = len(data)
+
     except Exception:
         print("Error reading the file")
-        return 0
+        sys.exit(0)
 
+    starting = len(data)
     if starting == 0:
         print("Starting index: 0")
         return 0
+
     if starting == n_samples:
         print("All samples are done.")
         return None
