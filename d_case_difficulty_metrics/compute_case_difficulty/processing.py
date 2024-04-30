@@ -34,22 +34,31 @@ def preprocessor(categorical_columns, numeric_columns):
 def check_curr_status(n_samples, file_name):
     if not os.path.isfile(file_name):
         print("File does not exist, starting from index 0.")
-        return 0
+        curr_df = pd.DataFrame(
+            columns=[
+                "Index",
+                "LearnRate",
+                "BatchSize",
+                "Activation",
+                "HiddenLayerSizes",
+            ]
+        )
+        return 0, curr_df
     try:
-        data = pd.read_excel(file_name)
+        curr_df = pd.read_excel(file_name)
 
     except Exception:
         print("Error reading the file")
         sys.exit(0)
 
-    starting = len(data)
+    starting = len(curr_df)
     if starting == 0:
         print("Starting index: 0")
-        return 0
+        return 0, curr_df
 
     if starting == n_samples:
         print("All samples are done.")
-        return None
+        sys.exit(0)
 
     print("Starting index:", starting)
-    return starting
+    return starting, curr_df

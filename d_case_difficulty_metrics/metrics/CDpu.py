@@ -97,7 +97,7 @@ def objective(X_without_test, y_without_test, processing, config):
 
 def hyperparm_searching(hyper_file_name, data, processing, target_column):
     n_samples = len(data)
-    starting = check_curr_status(n_samples, PATH + hyper_file_name)
+    starting, curr_df = check_curr_status(n_samples, PATH + hyper_file_name)
 
     # Generate combinations of layers and neurons
     neurons = [5, 10, 15, 20]
@@ -108,7 +108,6 @@ def hyperparm_searching(hyper_file_name, data, processing, target_column):
     ]
 
     # Initialize an empty DataFrame
-    curr_df = pd.read_excel(PATH + hyper_file_name)
     results_df = pd.DataFrame(
         columns=["Index", "LearnRate", "BatchSize", "Activation", "HiddenLayerSizes"]
     )
