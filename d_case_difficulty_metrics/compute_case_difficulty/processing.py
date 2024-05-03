@@ -34,15 +34,7 @@ def preprocessor(categorical_columns, numeric_columns):
 def check_curr_status(n_samples, file_name):
     if not os.path.isfile(file_name):
         print("File does not exist, starting from index 0.")
-        curr_df = pd.DataFrame(
-            columns=[
-                "Index",
-                "LearnRate",
-                "BatchSize",
-                "Activation",
-                "HiddenLayerSizes",
-            ]
-        )
+        curr_df = pd.DataFrame()
         return 0, curr_df
     try:
         curr_df = pd.read_excel(file_name)
@@ -58,7 +50,7 @@ def check_curr_status(n_samples, file_name):
 
     if starting == n_samples:
         print("All samples are done.")
-        sys.exit(0)
+        return starting, curr_df
 
     print("Starting index:", starting)
     return starting, curr_df
