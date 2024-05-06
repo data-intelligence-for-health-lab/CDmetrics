@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pandas as pd
 import random
@@ -22,8 +20,6 @@ from d_case_difficulty_metrics.api import PATH
 
 import multiprocessing
 
-import sys
-
 
 # manually generate the different random seed
 def random_generater():
@@ -32,7 +28,7 @@ def random_generater():
 
 # Model Complexity (NN)
 def nn_model_complexity_multiprocessing(
-    X, y, X_test, y_test, processing, number_of_neuron
+    X, y, X_test, y_test, processing, number_of_neuron, output
 ):
     count = 0
 
@@ -79,8 +75,8 @@ def nn_model_complexity_multiprocessing(
         y_train_processed,
         validation_data=(X_val_processed, y_val_processed),
         batch_size=32,
-        epochs=100,
-        verbose=0,
+        epochs=3,
+        verbose=1,
         callbacks=[es],
     )
 
@@ -96,50 +92,49 @@ def nn_model_complexity_multiprocessing(
     output.put(count)
 
 
-rows_value = []
-output = multiprocessing.Queue()
-
-
 def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
+    # rows_value = []
+    output = multiprocessing.Queue()
     n_samples = len(data)
     starting, curr_df = check_curr_status(n_samples, PATH + file_name)
 
-    rows = []
+    # rows = []
     # CDmc_set
-    for index in range(starting, 2):  # number of index to check
+    for index in range(starting, 5):  # number of index to check
         print("\nindex:", index)
 
         X_overall = data.drop(columns=[target_column], axis=1)
         y_overall = data[target_column]
 
         # One sample left out
-        X_test = X_overall.iloc[
-            [index]
-        ]  # the test case that want to check the difficulty
+        # the test case that want to check the difficulty
+        X_test = X_overall.iloc[[index]]
         y_test = y_overall[index]
 
         X = X_overall.drop(index=[index])  # X,y the dataset wilthout the test case
         y = y_overall.drop(index=[index])
 
-        correct_count = 0
         processes = []
+
         for _ in range(0, number_of_NNs):  # How many NN to generate
             p = multiprocessing.Process(
                 target=nn_model_complexity_multiprocessing,
-                args=(X, y, X_test, y_test, processing, 1),
+                args=(X, y, X_test, y_test, processing, 1, output),
             )
             p.start()
             processes.append(p)
 
-        try:
-            for process in processes:
-                process.join()
+        for process in processes:
+            process.join()
 
-            # Get process results from the output queue
-            correct_count = [output.get() for p in processes]
-            # print("correct_count:",correct_count)
-            # print("correct number:",sum(correct_count))
+        correct_count = []
+        while not output.empty():
+            correct_count.append(output.get())
 
+        print("correct_count:", correct_count)
+        print("correct_count:", sum(correct_count))
+
+        """
             rows = (
                 [index]
                 + [X_test[column][index] for column in X_test.columns]
@@ -154,14 +149,17 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
 
             # Append the dictionary as a new row in the DataFrame
             results_df = results_df.append(rows, ignore_index=True)
+        """
 
+        """
         except KeyboardInterrupt:
             for process in processes:
                 process.terminate()
                 process.join()
                 print("Keyboard error occurred")
-            results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
-            sys.exit(0)
+            #results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
+            # sys.exit(0)
+
 
         except Exception as e:
             print(f"Error: {e}")
@@ -182,6 +180,9 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
     else:
         sys.exit(0)
 
+            """
+
+    """
     # CDmc_add
     while True:
         MNN = round(len(data) * 0.01)
@@ -282,3 +283,4 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
                         process.terminate()
                         process.join()
                     sys.exit("parent received ctrl-c.")
+    """
