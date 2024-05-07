@@ -19,6 +19,7 @@ from d_case_difficulty_metrics.compute_case_difficulty.processing import (
 from d_case_difficulty_metrics.api import PATH
 
 import multiprocessing
+import sys
 
 
 # manually generate the different random seed
@@ -70,12 +71,13 @@ def nn_model_complexity_multiprocessing(
         monitor="val_loss", mode="min", verbose=0, patience=30
     )
 
+    # TODO change epochs
     model.fit(
         X_train_processed,
         y_train_processed,
         validation_data=(X_val_processed, y_val_processed),
         batch_size=32,
-        epochs=3,
+        epochs=5,
         verbose=1,
         callbacks=[es],
     )
@@ -93,94 +95,91 @@ def nn_model_complexity_multiprocessing(
 
 
 def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
-    # rows_value = []
     output = multiprocessing.Queue()
     n_samples = len(data)
     starting, curr_df = check_curr_status(n_samples, PATH + file_name)
 
-    # rows = []
+    rows_value = []
+    rows = []
     # CDmc_set
-    for index in range(starting, 5):  # number of index to check
-        print("\nindex:", index)
 
-        X_overall = data.drop(columns=[target_column], axis=1)
-        y_overall = data[target_column]
+    try:
+        # TODO change 3 to n_samples
+        for index in range(starting, 3):
+            print("\nindex:", index)
 
-        # One sample left out
-        # the test case that want to check the difficulty
-        X_test = X_overall.iloc[[index]]
-        y_test = y_overall[index]
+            X_overall = data.drop(columns=[target_column], axis=1)
+            y_overall = data[target_column]
 
-        X = X_overall.drop(index=[index])  # X,y the dataset wilthout the test case
-        y = y_overall.drop(index=[index])
+            # One sample left out
+            # the test case that want to check the difficulty
+            X_test = X_overall.iloc[[index]]
+            y_test = y_overall[index]
 
-        processes = []
+            X = X_overall.drop(index=[index])  # X,y the dataset wilthout the test case
+            y = y_overall.drop(index=[index])
 
-        for _ in range(0, number_of_NNs):  # How many NN to generate
-            p = multiprocessing.Process(
-                target=nn_model_complexity_multiprocessing,
-                args=(X, y, X_test, y_test, processing, 1, output),
-            )
-            p.start()
-            processes.append(p)
+            processes = []
 
-        for process in processes:
-            process.join()
+            for _ in range(0, number_of_NNs):  # How many NN to generate
+                p = multiprocessing.Process(
+                    target=nn_model_complexity_multiprocessing,
+                    args=(X, y, X_test, y_test, processing, 1, output),
+                )
+                p.start()
+                processes.append(p)
 
-        correct_count = []
-        while not output.empty():
-            correct_count.append(output.get())
+            for process in processes:
+                process.join()
 
-        print("correct_count:", correct_count)
-        print("correct_count:", sum(correct_count))
+            correct_count = []
+            while not output.empty():
+                correct_count.append(output.get())
 
-        """
+            print("correct_count:", correct_count)
+            print("correct_count:", sum(correct_count))
+
             rows = (
                 [index]
                 + [X_test[column][index] for column in X_test.columns]
                 + [y_test]
-                + int(1)
+                + [int(1)]
                 + [sum(correct_count)]
             )
             print("rows:", rows)
             rows_value.append(rows)
-            results_df = pd.DataFrame(rows_value)
-            # print("results:",results)
 
-            # Append the dictionary as a new row in the DataFrame
-            results_df = results_df.append(rows, ignore_index=True)
-        """
+    except KeyboardInterrupt:
+        for process in processes:
+            process.terminate()
+            process.join()
+            print("Keyboard error occurred")
 
-        """
-        except KeyboardInterrupt:
-            for process in processes:
-                process.terminate()
-                process.join()
-                print("Keyboard error occurred")
-            #results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
-            # sys.exit(0)
-
-
-        except Exception as e:
-            print(f"Error: {e}")
-            print("An error occurred")
-            results_df.to_excel(PATH + "error_" + file_name, index=False)
-
-        finally:
-            # Save the DataFrame to Excel once after the loop completes
-            curr_df = pd.concat([curr_df, results_df], ignore_index=True)
-            curr_df.to_excel(PATH + file_name, index=False)
-
-    # Adding column_names to excel file
-    if len(curr_df) == n_samples:
-        curr_df.columns = (
-            ["index"] + X.columns.to_list() + ["y", "number_of_neuron", "correct_count"]
-        )
-        curr_df.to_excel(file_name, index=False)
-    else:
+        results_df = pd.DataFrame(rows_value)
+        results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
         sys.exit(0)
 
-            """
+    except Exception as e:
+        print(f"Error: {e}")
+        print("An error occurred")
+        results_df = pd.DataFrame(rows_value)
+        results_df.to_excel(PATH + "error_" + file_name, index=False)
+
+    finally:
+        results_df = pd.DataFrame(rows_value)
+        curr_df = pd.concat([curr_df, results_df], ignore_index=True)
+
+        # Adding column_names when the set is done
+        # TODO change 3 to n_samples
+        if len(curr_df) == 3:
+            curr_df.columns = (
+                ["index"]
+                + data.columns.to_list()
+                + ["number_of_neuron", "correct_count"]
+            )
+            curr_df.to_excel(PATH + file_name, index=False)
+        else:
+            curr_df.to_excel(PATH + file_name, index=False)
 
     """
     # CDmc_add
