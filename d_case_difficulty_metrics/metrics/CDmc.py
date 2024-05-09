@@ -41,7 +41,9 @@ def nn_model_complexity_multiprocessing(
     X_val_processed = processing.transform(X_val)
     X_test_processed = processing.transform(X_test)
 
+    print("y_train:", y_train)
     num_classes = len(unique_labels(y_train))
+    print("num_classes:", num_classes)
     if num_classes > 2:
         y_train_processed = np_utils.to_categorical(y_train, num_classes)
         y_val_processed = np_utils.to_categorical(y_val, num_classes)
@@ -78,7 +80,7 @@ def nn_model_complexity_multiprocessing(
         validation_data=(X_val_processed, y_val_processed),
         batch_size=32,
         epochs=5,
-        verbose=1,
+        verbose=0,
         callbacks=[es],
     )
 
@@ -97,6 +99,7 @@ def nn_model_complexity_multiprocessing(
 def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
     output = multiprocessing.Queue()
     n_samples = len(data)
+    print("PATH + file_name:", PATH + file_name)
     starting, curr_df = check_curr_status(n_samples, PATH + file_name)
 
     rows_value = []
@@ -111,7 +114,6 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
             X_overall = data.drop(columns=[target_column], axis=1)
             y_overall = data[target_column]
 
-            # One sample left out
             # the test case that want to check the difficulty
             X_test = X_overall.iloc[[index]]
             y_test = y_overall[index]
@@ -181,18 +183,12 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
         else:
             curr_df.to_excel(PATH + file_name, index=False)
 
-    """
     # CDmc_add
+
     while True:
-        MNN = round(len(data) * 0.01)
-        updated_rows = []
-
-        one_neuron_file = pd.read_excel(file_name)
-
-        X_all = one_neuron_file.drop(
-            columns=["index", "y", "number_of_neuron", "correct_count"]
-        )
-        y_all = one_neuron_file["y"]
+        # TODO change to MNN = round(len(data) * 0.01)
+        MNN = 3
+        one_neuron_file = pd.read_excel(PATH + file_name)
 
         # Check the index that needs to be repeated
         repeat_index_count_view = one_neuron_file.loc[
@@ -202,7 +198,7 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
         ]
 
         print(
-            "The total number of indexes needed to repeat:",
+            "The total number data need to be repeated:",
             len(repeat_index_count_view),
         )
         print(repeat_index_count_view, "\n")
@@ -215,7 +211,7 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
         ]
 
         print(
-            "The number of indexes left (Neuron perspective):",
+            "The number of indexes left middle of the running:",
             len(repeat_index_neuron_count_view),
         )
         print(repeat_index_neuron_count_view, "\n")
@@ -228,58 +224,83 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
             sys.exit(0)
 
         else:
-            for i in repeat_index_neuron_count_view["index"].values.tolist():
+            # Drop index, y, number_of_neuron, correct_count
+            X_all = one_neuron_file.iloc[:, 1:-3]
+            y_all = one_neuron_file.iloc[:, -3]
 
-                X_test = X_all.iloc[
-                    [i]
-                ]  # the test case that want to check the difficulty
-                y_test = y_all[i]
+            print("y_all:", y_all)
 
-                X = X_all.drop(index=[i])  # X,y the dataset wilthout the test case
-                y = y_all.drop(index=[i])
+            for repeat_index in repeat_index_neuron_count_view["index"].values.tolist():
 
-                processes = []
-                for NNs in range(number_of_NNs):  # How many NN to generate
-                    p = multiprocessing.Process(
-                        target=nn_model_complexity_multiprocessing,
-                        args=(X, y, X_test, y_test, number_of_neuron),
-                    )
-                    p.start()
-                    processes.append(p)
+                # the test case that want to check the difficulty
+                X_test = X_all.iloc[[repeat_index]]
+                y_test = y_all.iloc[repeat_index]
+
+                print("y_test_2:", y_test)
+
+                # X,y the dataset wilthout the test case
+                X = X_all.drop(index=[repeat_index])
+                y = y_all.drop(index=[repeat_index])
+
+                print("y3:", y)
 
                 try:
+                    rows_value = []
+                    rows = []
+                    processes = []
+                    for NNs in range(number_of_NNs):  # How many NN to generate
+                        p = multiprocessing.Process(
+                            target=nn_model_complexity_multiprocessing,
+                            args=(X, y, X_test, y_test, processing, NNs, output),
+                        )
+                        p.start()
+                        processes.append(p)
+
                     for process in processes:
                         process.join()
                     # Get process results from the output queue
-                    correct_count = [output.get() for p in processes]
-                    print("index", i, "correct number:", sum(correct_count))
 
-                    updated_rows.append(
-                        [i]
-                        + [X_test[column][i] for column in X_test.columns]
+                    correct_count = []
+                    while not output.empty():
+                        correct_count.append(output.get())
+
+                    print(
+                        "repeat_index",
+                        repeat_index,
+                        "correct number:",
+                        sum(correct_count),
+                    )
+
+                    rows = [
+                        [repeat_index]
+                        + [X_test[column][repeat_index] for column in X_test.columns]
                         + [y_test]
                         + [number_of_neuron]
                         + [sum(correct_count)]
-                    )
-                    # print(updated_rows)
+                    ]
 
-                    score = pd.DataFrame(updated_rows, columns=one_neuron_file.columns)
+                    score = pd.DataFrame(rows, columns=one_neuron_file.columns)
+                    print("scoreee:", rows)
+
                     result = (
                         pd.concat([one_neuron_file, score])
                         .drop_duplicates(["index"], keep="last")
                         .sort_values("index")
                     )
-                    result = result.reset_index(drop=True)
-                    # print(result)
+                    results_df = result.reset_index(drop=True)
+                    print("reesuultt:", results_df)
 
-                    writer = pd.ExcelWriter(file_name)
-                    result.to_excel(writer, index=False)
-                    writer.close()
+                    results_df.to_excel(PATH + file_name, index=False)
 
                 except KeyboardInterrupt:
-                    print("parent received ctrl-c")
                     for process in processes:
                         process.terminate()
                         process.join()
-                    sys.exit("parent received ctrl-c.")
-    """
+                        print("Keyboard error occurred")
+                    results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
+                    sys.exit(0)
+
+                except Exception as e:
+                    print(f"Error: {e}")
+                    print("An error occurred")
+                    results_df.to_excel(PATH + "error_" + file_name, index=False)

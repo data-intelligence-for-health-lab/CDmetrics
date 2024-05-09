@@ -59,7 +59,7 @@ if __name__ == '__main__':
 """
 
 
-file_name = "./Customer_CDmc.xlsx"
+file_name = "Telco_CDmc.xlsx"
 number_of_NNs = 2
 processing = preprocessor(cat_columns, num_columns)
 

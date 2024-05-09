@@ -42,9 +42,9 @@ if __name__ == '__main__':
 """
 
 
-file_name = "./Customer.xlsx"
-number_of_NNs = 20
-
+file_name = "Customer.xlsx"
+number_of_NNs = 3
 processing = preprocessor(cat_columns, num_columns)
+
 if __name__ == "__main__":
-    CDmc.multipool_predictions(file_name, df, processing)
+    CDmc.CDmc_run(file_name, df, processing, target_column, number_of_NNs)
