@@ -1,32 +1,26 @@
-from numpy import array
 import pandas as pd
 import numpy as np
 import itertools
 import random
 import sys
-from multiprocessing import Pool, Manager
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-
 from keras.callbacks import EarlyStopping
 from keras.utils import np_utils
 
 from sklearn.model_selection import train_test_split
 from sklearn.utils.multiclass import unique_labels
 
+from multiprocessing import Pool, Manager
 from ray import tune
 from ray.tune.search.hyperopt import HyperOptSearch
 import ray
 
+
 from functools import partial
 
 from d_case_difficulty_metrics.api import PATH
-from d_case_difficulty_metrics.compute_case_difficulty.processing import (
-    check_curr_status,
-)
+from d_case_difficulty_metrics.src.processing.curr_status import curr_status
 
 
 # manually generate the different random seed
@@ -59,7 +53,7 @@ def objective(X_without_test, y_without_test, processing, config):
 
     # First hidden layer with input shape
     model.add(
-        Dense(
+        tf.keras.layers.Dense(
             config["hidden_layer_sizes"][0],
             input_shape=(X_train_processed.shape[1],),
             activation=config["activation"],
@@ -69,14 +63,16 @@ def objective(X_without_test, y_without_test, processing, config):
     # Ssecond hidden layer to number of hidden layers
     for i in range(1, len(config["hidden_layer_sizes"])):
         model.add(
-            Dense(config["hidden_layer_sizes"][i], activation=config["activation"])
+            tf.keras.layers.Dense(
+                config["hidden_layer_sizes"][i], activation=config["activation"]
+            )
         )
 
     # Output layer
     model.add(tf.keras.layers.Dense(num_classes, activation=output_activation))
     model.compile(
         loss=loss_function,
-        optimizer=Adam(learning_rate=config["learnRate"]),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=config["learnRate"]),
         metrics=["accuracy"],
     )
 
@@ -97,7 +93,7 @@ def objective(X_without_test, y_without_test, processing, config):
 
 def hyperparm_searching(hyper_file_name, data, processing, target_column):
     n_samples = len(data)
-    starting, curr_df = check_curr_status(n_samples, PATH + hyper_file_name)
+    starting, curr_df = curr_status(n_samples, PATH + hyper_file_name)
 
     # Generate combinations of layers and neurons
     neurons = [5, 10, 15, 20]
@@ -215,7 +211,7 @@ def nn_model_complexity_multiprocessing(
     model.add(tf.keras.layers.Dense(num_classes, activation=output_activation))
     model.compile(
         loss=loss_function,
-        optimizer=Adam(learning_rate=best_params["learnRate"]),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=best_params["learnRate"]),
         metrics=["accuracy"],
     )
     es = EarlyStopping(monitor="val_loss", mode="min", verbose=0, patience=30)
@@ -232,7 +228,7 @@ def nn_model_complexity_multiprocessing(
     return difficulty
 
 
-def multipool_predictions(
+def CDpu_run(
     file_name,
     hyper_file_name,
     data,
@@ -257,7 +253,7 @@ def multipool_predictions(
         sys.exit("Error: Number of hyper_param is not enough.")
 
     n_samples = len(data)
-    starting = check_curr_status(n_samples, file_name)
+    starting = curr_status(n_samples, file_name)
 
     try:
         all_row_values = []

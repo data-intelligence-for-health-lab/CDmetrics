@@ -3,19 +3,12 @@ import pandas as pd
 import random
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
 from sklearn.utils.multiclass import unique_labels
 
 import tensorflow as tf
-from tensorflow import keras
 from keras.utils import np_utils
 
-from d_case_difficulty_metrics.compute_case_difficulty.processing import (
-    check_curr_status,
-)
+from d_case_difficulty_metrics.src.processing.curr_status import curr_status
 from d_case_difficulty_metrics.api import PATH
 
 import multiprocessing
@@ -100,7 +93,7 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
     output = multiprocessing.Queue()
     n_samples = len(data)
     print("PATH + file_name:", PATH + file_name)
-    starting, curr_df = check_curr_status(n_samples, PATH + file_name)
+    starting, curr_df = curr_status(n_samples, PATH + file_name)
 
     rows_value = []
     rows = []

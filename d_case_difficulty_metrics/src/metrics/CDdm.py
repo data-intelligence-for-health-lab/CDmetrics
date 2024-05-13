@@ -1,26 +1,18 @@
 import pandas as pd
 import numpy as np
 import itertools
-from numpy import array
 
 from sklearn.model_selection import KFold
 from sklearn.utils.multiclass import unique_labels
-from sklearn.utils import shuffle
 
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Dropout
-
 from keras.callbacks import EarlyStopping
 from keras.utils import np_utils
 
 from hyperopt.pyll.base import scope
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
-from d_case_difficulty_metrics.compute_case_difficulty.processing import preprocessor
+from d_case_difficulty_metrics.api import PATH
 
 
 # Model A
@@ -58,7 +50,7 @@ def create_model_A(params):
     model.add(tf.keras.layers.Dense(num_classes, activation=output_activation))
     model.compile(
         loss=loss_function,
-        optimizer=Adam(learning_rate=params["learnRate"]),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
         metrics=["accuracy"],
     )
 
@@ -106,7 +98,7 @@ def create_model_B(params):
     model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
     model.compile(
         loss="binary_crossentropy",
-        optimizer=Adam(learning_rate=params["learnRate"]),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
         metrics=["accuracy"],
     )
 
@@ -262,12 +254,10 @@ def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
     return (difficulty_data_for_model_B, predicted_difficulty)
 
 
-def CDdm_run(data, max_eval_a, max_eval_b, cat_columns, num_columns, target_column):
+def CDdm_run(file_name, data, max_eval_a, max_eval_b, processing, target_column):
     fold_order = [[(i + j) % 5 for i in range(5)] for j in range(5)]
     Fold_data_save = []
     Fold_difficulty_save = []
-
-    processing = preprocessor(cat_columns, num_columns)
 
     for i in range(len(fold_order)):
         folds = fold_order[i]
@@ -297,7 +287,4 @@ def CDdm_run(data, max_eval_a, max_eval_b, cat_columns, num_columns, target_colu
         ),
         columns=new_column_names,
     )
-
-    writer = pd.ExcelWriter("./result/CDdm_result.xlsx")
-    temp_df.to_excel(writer, header=True, index=False)
-    writer.close()
+    temp_df.to_excel(PATH + file_name, header=True, index=False)
