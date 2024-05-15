@@ -348,6 +348,8 @@ def CDpu_run(
         results_df = pd.DataFrame(all_row_values)
         results_df.to_excel(PATH + file_name, index=False)
 
+        return results_df
+
     except KeyboardInterrupt:
         print("Keyboard error occurred")
         results_df = pd.DataFrame(all_row_values)
@@ -358,3 +360,4 @@ def CDpu_run(
         print("An error occurred")
         results_df = pd.DataFrame(all_row_values)
         results_df.to_excel(PATH + "error_" + file_name, index=False)
+        sys.exit(0)

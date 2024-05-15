@@ -288,3 +288,4 @@ def CDdm_run(file_name, data, max_eval_a, max_eval_b, processing, target_column)
         columns=new_column_names,
     )
     temp_df.to_excel(PATH + file_name, header=True, index=False)
+    return temp_df

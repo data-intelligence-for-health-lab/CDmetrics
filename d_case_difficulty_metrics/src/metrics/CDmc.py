@@ -284,6 +284,7 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
                     print("reesuultt:", results_df)
 
                     results_df.to_excel(PATH + file_name, index=False)
+                    return results_df
 
                 except KeyboardInterrupt:
                     for process in processes:
@@ -291,9 +292,10 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
                         process.join()
                         print("Keyboard error occurred")
                     results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
-                    sys.exit(0)
+                    sys.exit()
 
                 except Exception as e:
                     print(f"Error: {e}")
                     print("An error occurred")
                     results_df.to_excel(PATH + "error_" + file_name, index=False)
+                    sys.exit(0)
