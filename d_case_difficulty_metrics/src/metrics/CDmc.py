@@ -66,13 +66,12 @@ def nn_model_complexity_multiprocessing(
         monitor="val_loss", mode="min", verbose=0, patience=30
     )
 
-    # TODO change epochs
     model.fit(
         X_train_processed,
         y_train_processed,
         validation_data=(X_val_processed, y_val_processed),
         batch_size=32,
-        epochs=5,
+        epochs=100,
         verbose=0,
         callbacks=[es],
     )
@@ -97,11 +96,10 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
 
     rows_value = []
     rows = []
-    # CDmc_set
 
+    # CDmc_set
     try:
-        # TODO change 3 to n_samples
-        for index in range(starting, 3):
+        for index in range(starting, n_samples):
             print("\nindex:", index)
 
             X_overall = data.drop(columns=[target_column], axis=1)
@@ -165,8 +163,7 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
         curr_df = pd.concat([curr_df, results_df], ignore_index=True)
 
         # Adding column_names when the set is done
-        # TODO change 3 to n_samples
-        if len(curr_df) == 3:
+        if len(curr_df) == n_samples:
             curr_df.columns = (
                 ["index"]
                 + data.columns.to_list()
@@ -177,10 +174,8 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
             curr_df.to_excel(PATH + file_name, index=False)
 
     # CDmc_add
-
     while True:
-        # TODO change to MNN = round(len(data) * 0.01)
-        MNN = 3
+        MNN = round(len(data) * 0.01)
         one_neuron_file = pd.read_excel(PATH + file_name)
 
         # Check the index that needs to be repeated
@@ -221,21 +216,14 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
             X_all = one_neuron_file.iloc[:, 1:-3]
             y_all = one_neuron_file.iloc[:, -3]
 
-            print("y_all:", y_all)
-
             for repeat_index in repeat_index_neuron_count_view["index"].values.tolist():
-
                 # the test case that want to check the difficulty
                 X_test = X_all.iloc[[repeat_index]]
                 y_test = y_all.iloc[repeat_index]
 
-                print("y_test_2:", y_test)
-
                 # X,y the dataset wilthout the test case
                 X = X_all.drop(index=[repeat_index])
                 y = y_all.drop(index=[repeat_index])
-
-                print("y3:", y)
 
                 try:
                     rows_value = []

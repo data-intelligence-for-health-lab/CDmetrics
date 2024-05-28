@@ -109,7 +109,7 @@ def hyperparm_searching(hyper_file_name, data, processing, target_column):
     )
 
     try:
-        for index in range(starting, 4):  # len(data)
+        for index in range(starting, len(data)):
             X_overall = data.drop(columns=[target_column], axis=1)
             y_overall = data[target_column]
 
@@ -257,7 +257,7 @@ def CDpu_run(
 
     try:
         all_row_values = []
-        for index in range(starting, 2):
+        for index in range(starting, n_samples):
             X_overall = data.drop(columns=[target_column], axis=1)
             y_overall = data[target_column]
 
@@ -322,8 +322,6 @@ def CDpu_run(
                 pool.join()
 
             finally:
-                print("\n\npredicted_probabilities:", list(predicted_probabilities))
-
                 if len(predicted_probabilities) != number_of_predictions:
                     results_df = pd.DataFrame(all_row_values)
                     results_df.to_excel(PATH + "unmatching_" + file_name, index=False)
