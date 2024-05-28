@@ -65,7 +65,7 @@ def create_model_A(params):
         callbacks=[es],
     )
     validation_loss = np.amin(result.history["val_loss"])
-    validation_acc = np.amin(result.history["val_accuracy"])
+    validation_acc = np.amax(result.history["val_accuracy"])
 
     return {
         "loss": validation_loss,
@@ -114,7 +114,7 @@ def create_model_B(params):
     )
 
     validation_loss = np.amin(result.history["val_loss"])
-    validation_acc = np.amin(result.history["val_accuracy"])
+    validation_acc = np.amax(result.history["val_accuracy"])
 
     return {
         "loss": validation_loss,
@@ -167,14 +167,11 @@ def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
         trials=trials,
     )
 
-    best_model_A = trials.results[np.argmin([r["loss"] for r in trials.results])][
-        "model"
-    ]
-    best_params_A = trials.results[np.argmin([r["loss"] for r in trials.results])][
-        "params"
-    ]
-    best_acc_A = trials.results[np.argmin([r["loss"] for r in trials.results])]["acc"]
-    best_loss_A = trials.results[np.argmin([r["loss"] for r in trials.results])]["loss"]
+    min_loss_index = np.argmin([r["loss"] for r in trials.results])
+    best_model_A = trials.results[min_loss_index]["model"]
+    best_params_A = trials.results[min_loss_index]["params"]
+    best_acc_A = trials.results[min_loss_index]["acc"]
+    best_loss_A = trials.results[min_loss_index]["loss"]
     print("best_acc_A:", best_acc_A, "best_loss_A:", best_loss_A)
     print("best_params_A:", best_params_A)
 
@@ -229,14 +226,11 @@ def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
         trials=trials,
     )
 
-    best_model_B = trials.results[np.argmin([r["loss"] for r in trials.results])][
-        "model"
-    ]
-    best_params_B = trials.results[np.argmin([r["loss"] for r in trials.results])][
-        "params"
-    ]
-    best_acc_B = trials.results[np.argmin([r["loss"] for r in trials.results])]["acc"]
-    best_loss_B = trials.results[np.argmin([r["loss"] for r in trials.results])]["loss"]
+    min_loss_index = np.argmin([r["loss"] for r in trials.results])
+    best_model_B = trials.results[min_loss_index]["model"]
+    best_params_B = trials.results[min_loss_index]["params"]
+    best_acc_B = trials.results[min_loss_index]["acc"]
+    best_loss_B = trials.results[min_loss_index]["loss"]
     print("best_acc_B:", best_acc_B, "best_loss_B:", best_loss_B)
     print("best_params_B:", best_params_B)
 
