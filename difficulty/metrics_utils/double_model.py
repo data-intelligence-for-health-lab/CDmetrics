@@ -4,6 +4,7 @@ import itertools
 
 from sklearn.model_selection import KFold
 from sklearn.utils.multiclass import unique_labels
+from  nn import NN
 
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
@@ -29,101 +30,18 @@ def create_model_A(params):
         processed_train_y_model_A = train_y_model_A
         loss_function = "binary_crossentropy"
         output_activation = "sigmoid"
+    
 
-    model = tf.keras.models.Sequential()
-    # First hidden layer with input shape
-    model.add(
-        tf.keras.layers.Dense(
-            params["hidden_layer_sizes"][0],
-            input_shape=(train_x_model_A.shape[1],),
-            activation=params["activation"],
-        )
-    )
-    # Second hidden layer to number of hidden layers
-    for i in range(1, len(params["hidden_layer_sizes"])):
-        model.add(
-            tf.keras.layers.Dense(
-                params["hidden_layer_sizes"][i], activation=params["activation"]
-            )
-        )
-    # Ouput layer
-    model.add(tf.keras.layers.Dense(num_classes, activation=output_activation))
-    model.compile(
-        loss=loss_function,
-        optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
-        metrics=["accuracy"],
-    )
-
-    es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
-    result = model.fit(
-        train_x_model_A,
-        processed_train_y_model_A,
-        verbose=0,
-        validation_split=0.3,
-        batch_size=params["batch_size"],
-        epochs=100,
-        callbacks=[es],
-    )
-    validation_loss = np.amin(result.history["val_loss"])
-    validation_acc = np.amax(result.history["val_accuracy"])
-
-    return {
-        "loss": validation_loss,
-        "acc": validation_acc,
-        "status": STATUS_OK,
-        "model": model,
-        "params": params,
-    }
-
+    model = NN(params, num_classes,output_activation)
+ 
+    results = model.train(params,)
+    return  results
 
 # Model B
 def create_model_B(params):
-    model = tf.keras.models.Sequential()
-    # First hidden layer with input shape
-    model.add(
-        tf.keras.layers.Dense(
-            params["hidden_layer_sizes"][0],
-            input_shape=(model_B_train_x.shape[1],),
-            activation=params["activation"],
-        )
-    )
-    # Second hidden layer to number of hidden layers
-    for i in range(1, len(params["hidden_layer_sizes"])):
-        model.add(
-            tf.keras.layers.Dense(
-                params["hidden_layer_sizes"][i], activation=params["activation"]
-            )
-        )
-    # Ouput layer
-    model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
-    model.compile(
-        loss="binary_crossentropy",
-        optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
-        metrics=["accuracy"],
-    )
-
-    es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
-    result = model.fit(
-        model_B_train_x,
-        model_B_train_y,
-        verbose=0,
-        validation_split=0.3,
-        batch_size=params["batch_size"],
-        epochs=100,
-        callbacks=[es],
-    )
-
-    validation_loss = np.amin(result.history["val_loss"])
-    validation_acc = np.amax(result.history["val_accuracy"])
-
-    return {
-        "loss": validation_loss,
-        "acc": validation_acc,
-        "status": STATUS_OK,
-        "model": model,
-        "params": params,
-    }
-
+    model = NN(params,1,"sigmoid")
+    results = model.train()
+    return results
 
 def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
     kfold = KFold(n_splits=5, shuffle=True, random_state=0)
@@ -247,39 +165,3 @@ def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
 
     return (difficulty_data_for_model_B, predicted_difficulty)
 
-
-def CDdm_run(file_name, data, max_eval_a, max_eval_b, processing, target_column):
-    fold_order = [[(i + j) % 5 for i in range(5)] for j in range(5)]
-    Fold_data_save = []
-    Fold_difficulty_save = []
-
-    for i in range(len(fold_order)):
-        folds = fold_order[i]
-        difficulty_data_for_model_B, difficulty = CDdm_main(
-            data, folds, max_eval_a, max_eval_b, processing, target_column
-        )
-        Fold_data_save.append(difficulty_data_for_model_B)
-        Fold_difficulty_save.append(difficulty)
-
-    dataframe_temp = Fold_data_save
-
-    # Combine the results
-    for i in range(len(fold_order)):
-        dataframe_temp[i]["difficulty"] = Fold_difficulty_save[i]
-
-    new_column_names = data.columns.tolist()
-    new_column_names.extend(["difficulty"])
-    temp_df = pd.DataFrame(
-        np.row_stack(
-            [
-                dataframe_temp[0],
-                dataframe_temp[1],
-                dataframe_temp[2],
-                dataframe_temp[3],
-                dataframe_temp[4],
-            ]
-        ),
-        columns=new_column_names,
-    )
-    temp_df.to_excel(PATH + file_name, header=True, index=False)
-    return temp_df

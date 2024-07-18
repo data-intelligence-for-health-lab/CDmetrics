@@ -1,94 +1,56 @@
 import numpy as np
-import pandas as pd
-import random
 
-from sklearn.model_selection import train_test_split
-from sklearn.utils.multiclass import unique_labels
+def double_model_score(file_name, data, max_eval_a, max_eval_b,target_column) -> np.Array:
+    """
+    Compute the difficulity score using the double models approach
+    :params 
 
-import tensorflow as tf
-from keras.utils import np_utils
+    :return array  of difficulity scores,  with elements  the difficulty of samples
+    
+    """
+    fold_order = [[(i + j) % 5 for i in range(5)] for j in range(5)]
+    Fold_data_save = []
+    Fold_difficulty_save = []
 
-from d_case_difficulty_metrics.src.processing.curr_status import curr_status
-from d_case_difficulty_metrics.api import PATH
-
-import multiprocessing
-import sys
-
-
-# manually generate the different random seed
-def random_generater():
-    return random.randint(1, 100000)
-
-
-# Model Complexity (NN)
-def nn_model_complexity_multiprocessing(
-    X, y, X_test, y_test, processing, number_of_neuron, output
-):
-    count = 0
-
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.3, random_state=random_generater()
-    )
-
-    X_train_processed = processing.fit_transform(X_train)
-    X_val_processed = processing.transform(X_val)
-    X_test_processed = processing.transform(X_test)
-
-    print("y_train:", y_train)
-    num_classes = len(unique_labels(y_train))
-    print("num_classes:", num_classes)
-    if num_classes > 2:
-        y_train_processed = np_utils.to_categorical(y_train, num_classes)
-        y_val_processed = np_utils.to_categorical(y_val, num_classes)
-        loss_function = "categorical_crossentropy"
-        output_activation = "softmax"
-    else:
-        num_classes = 1
-        y_train_processed = y_train
-        y_val_processed = y_val
-        loss_function = "binary_crossentropy"
-        output_activation = "sigmoid"
-
-    model = tf.keras.models.Sequential()
-    model.add(
-        tf.keras.layers.Dense(
-            number_of_neuron,
-            input_shape=(X_train_processed.shape[1],),
-            activation="relu",
+    for i in range(len(fold_order)):
+        folds = fold_order[i]
+        difficulty_data_for_model_B, difficulty = CDdm_main(
+            data, folds, max_eval_a, max_eval_b, processing, target_column
         )
-    )  # Increasing number of neuron
-    model.add(
-        tf.keras.layers.Dense(num_classes, activation=output_activation)
-    )  # output layer
-    model.compile(loss=loss_function, optimizer="adam", metrics=["accuracy"])
+        Fold_data_save.append(difficulty_data_for_model_B)
+        Fold_difficulty_save.append(difficulty)
 
-    es = tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss", mode="min", verbose=0, patience=30
+    dataframe_temp = Fold_data_save
+
+    # Combine the results
+    for i in range(len(fold_order)):
+        dataframe_temp[i]["difficulty"] = Fold_difficulty_save[i]
+
+    new_column_names = data.columns.tolist()
+    new_column_names.extend(["difficulty"])
+    temp_df = pd.DataFrame(
+        np.row_stack(
+            [
+                dataframe_temp[0],
+                dataframe_temp[1],
+                dataframe_temp[2],
+                dataframe_temp[3],
+                dataframe_temp[4],
+            ]
+        ),
+        columns=new_column_names,
     )
-
-    model.fit(
-        X_train_processed,
-        y_train_processed,
-        validation_data=(X_val_processed, y_val_processed),
-        batch_size=32,
-        epochs=100,
-        verbose=0,
-        callbacks=[es],
-    )
-
-    y_test = np.argmax(y_test)
-    y_pred = np.argmax(model.predict(np.array(X_test_processed)), axis=1)
-
-    if np.all(y_pred == y_test):
-        count += 1
-    else:
-        count += 0
-
-    tf.keras.backend.clear_session()
-    output.put(count)
+    temp_df.to_excel(PATH + file_name, header=True, index=False)
+    return temp_df
 
 
-def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
+
+def model_complexity_score(file_name, data, processing, target_column, number_of_NNs) ->np.Array:
+    """ 
+    compute the difficulty score using the model  complexity approach
+
+    :return array  of difficulity scores,  with elements  the difficulty of samples
+    """
     output = multiprocessing.Queue()
     n_samples = len(data)
     print("PATH + file_name:", PATH + file_name)
@@ -287,3 +249,144 @@ def CDmc_run(file_name, data, processing, target_column, number_of_NNs):
                     print("An error occurred")
                     results_df.to_excel(PATH + "error_" + file_name, index=False)
                     sys.exit(0)
+
+
+def prediction_uncertainty_score(
+    file_name,
+    hyper_file_name,
+    data,
+    processing,
+    target_column,
+    number_of_predictions,
+    number_of_cpu,
+):
+    
+
+     """ 
+    compute the difficulty score using the model  complexity approach
+
+    :return array  of difficulity scores,  with elements  the difficulty of samples
+    """
+    
+    hyper_param_df = pd.read_excel(
+        hyper_file_name,
+        index_col=None,
+        header=None,
+        names=["index", "learnRate", "batch_size", "activation", "hidden_layer_sizes"],
+    )
+
+    hyper_param_df["hidden_layer_sizes"] = hyper_param_df["hidden_layer_sizes"].apply(
+        lambda x: eval(x)
+    )
+
+    # Check hyperparam file prepared properly
+    if len(hyper_param_df) != len(data):
+        sys.exit("Error: Number of hyper_param is not enough.")
+
+    n_samples = len(data)
+    starting = curr_status(n_samples, file_name)
+
+    try:
+        all_row_values = []
+        for index in range(starting, n_samples):
+            X_overall = data.drop(columns=[target_column], axis=1)
+            y_overall = data[target_column]
+
+            X_test = X_overall.iloc[[index]]  # test case want to check the difficulty
+            y_test = y_overall[index]
+
+            X_without_test = X_overall.drop(index=[index])
+            y_without_test = y_overall.drop(index=[index])
+            param = hyper_param_df.iloc[index]
+
+            X_train_dataset = []
+            X_val_dataset = []
+            y_train_dataset = []
+            y_val_dataset = []
+
+            for _ in range(number_of_predictions):
+                X_train, X_val, y_train, y_val = train_test_split(
+                    X_without_test,
+                    y_without_test,
+                    test_size=0.3,
+                    random_state=random_generater(),
+                )
+                X_train_dataset.append(X_train)
+                X_val_dataset.append(X_val)
+                y_train_dataset.append(y_train)
+                y_val_dataset.append(y_val)
+
+            manager = Manager()
+            predicted_probabilities = manager.list()
+
+            def collect_result(result):
+                predicted_probabilities.append(result)
+
+            # Create a list of argument tuples
+            arg_list = [
+                (
+                    X_train_dataset[mm],
+                    X_val_dataset[mm],
+                    y_train_dataset[mm],
+                    y_val_dataset[mm],
+                    X_test,
+                    processing,
+                    param,
+                )
+                for mm in range(number_of_predictions)
+            ]
+
+            try:
+                pool = Pool(processes=number_of_cpu)
+                for args in arg_list:
+                    pool.apply_async(
+                        nn_model_complexity_multiprocessing,
+                        args,
+                        callback=collect_result,
+                    )
+                pool.close()
+                pool.join()
+
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt detected. Terminating...")
+                pool.terminate()
+                pool.join()
+
+            finally:
+                if len(predicted_probabilities) != number_of_predictions:
+                    results_df = pd.DataFrame(all_row_values)
+                    results_df.to_excel(PATH + "unmatching_" + file_name, index=False)
+                    sys.exit("Error: Number of predicted_probabilities does not match.")
+
+                else:
+                    # index, X_test, y_test, predicted_probabilities
+                    # binary class: single prediction, multiclass: each class prediction
+                    result_array = np.concatenate(
+                        [arr.flatten() for arr in predicted_probabilities]
+                    ).tolist()
+
+                    row_values = (
+                        [index]
+                        + [X_test[column][index] for column in X_test.columns]
+                        + [y_test]
+                        + result_array
+                    )
+                    all_row_values.append(row_values)
+                    print("all_row_values:", all_row_values)
+
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + file_name, index=False)
+
+        return results_df
+
+    except KeyboardInterrupt:
+        print("Keyboard error occurred")
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + "interrupted_" + file_name, index=False)
+        sys.exit(0)
+
+    except Exception:
+        print("An error occurred")
+        results_df = pd.DataFrame(all_row_values)
+        results_df.to_excel(PATH + "error_" + file_name, index=False)
+        sys.exit(0)
