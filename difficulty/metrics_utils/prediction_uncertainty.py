@@ -48,6 +48,10 @@ def objective(X_without_test, y_without_test, processing, config):
         y_val_processed = y_val
         loss_function = "binary_crossentropy"
         output_activation = "sigmoid"
+    
+
+    model =  NN()
+    results = model.train()
 
     model = tf.keras.models.Sequential()
 
@@ -60,7 +64,7 @@ def objective(X_without_test, y_without_test, processing, config):
         )
     )
 
-    # Ssecond hidden layer to number of hidden layers
+    # Second hidden layer to number of hidden layers
     for i in range(1, len(config["hidden_layer_sizes"])):
         model.add(
             tf.keras.layers.Dense(

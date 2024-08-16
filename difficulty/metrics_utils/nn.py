@@ -17,16 +17,18 @@ from d_case_difficulty_metrics.api import PATH
 
 class NN:
 
-    def __init__(self, params,input_size, num_classes) -> None:
+    def __init__(self, params) -> None:
 
         
-
+        self.num_classes = params["num_classes"]
         self.model = tf.keras.models.Sequential()
+        self.batch_size = params["batch_size"]
+        self.params = params
     # First hidden layer with input shape
         self.model .add(
             tf.keras.layers.Dense(
                 params["hidden_layer_sizes"][0],
-                input_shape=(input_size),
+                input_shape=(params["input_size"]),
                 activation=params["activation"],
             )
         )
@@ -37,30 +39,33 @@ class NN:
                     params["hidden_layer_sizes"][i], activation=params["activation"]
                 )
             )
+
+        if self.num_classes > 2:
+            self.loss_function = "categorical_crossentropy"
+            self.output_activation = "softmax"
+        else:
+            self.num_classes = 1
+            self.loss_function = "binary_crossentropy"
+            self.output_activation = "sigmoid"
+        
         # Ouput layer
-        self.model .add(tf.keras.layers.Dense(num_classes, activation=params["activation"]))
-        self.model .compile(
-            loss=params["loss_function"],
+        self.model.add(tf.keras.layers.Dense(self.num_classes, activation=self.output_activation))
+        self.model.compile(
+            loss=self.loss_function,
             optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
             metrics=["accuracy"],
         )
 
-    def train(self,params, data_x,data_y):
+    def train(self, data_x,data_y):
         """
         """
-        self.model.compile(
-        loss=params["loss_function"],
-        optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
-        metrics=["accuracy"],
-    )
-
         es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
         result = self.model.fit(
             data_x,
-            data_x,
+            data_y,
             verbose=0,
             validation_split=0.3,
-            batch_size=params["batch_size"],
+            batch_size=self.batch_size,
             epochs=100,
             callbacks=[es],
         )
@@ -72,5 +77,5 @@ class NN:
             "acc": validation_acc,
             "status": STATUS_OK,
             "model": self.model,
-            "params": params,
+            "params": self.params,
         }
