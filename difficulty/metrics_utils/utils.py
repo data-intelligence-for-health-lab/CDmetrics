@@ -7,6 +7,14 @@ from ray import air, tune
 def tune_parameters(search_space,model,data):
     """
     """
+    search_space = {
+    "learnRate": hp.choice("learnRate", [0.01, 0.03, 0.1]),
+    "batch_size": scope.int(hp.choice("batch_size", [32, 64, 128])),
+    "activation": hp.choice("activation", ["relu", "tanh"]),
+    "hidden_layer_sizes": hp.choice("hidden_layer_sizes", layer_neuron_orders),
+}
+
+
     trainer_with_resources = tune.with_resources(
             tune.with_parameters(model, data_frame=data),)
     tuner = tune.Tuner(

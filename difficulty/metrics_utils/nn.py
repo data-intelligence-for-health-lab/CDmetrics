@@ -79,3 +79,7 @@ class NN:
             "model": self.model,
             "params": self.params,
         }
+    
+    def predict():
+        """
+        """

@@ -43,72 +43,46 @@ def CDdm_main(data, folds, max_eval_a, max_eval_b, processing, target_column):
         for combination in itertools.product(neurons, repeat=r)
     ]
 
-    train_data_model_A_indexex = []
+    train_data_index = []
     for index in  folds[0:len(folds//2)]:
-        train_data_model_A_indexex += list(fold_index[index])
-
-    # train_data_for_model_A = pd.concat([fold_data0, fold_data1], ignore_index=True)
-    train_data_for_model_A = data.iloc[train_data_model_A_indexex]
-    # Train data for model A
-
-    train_data_for_model_A_x = train_data_for_model_A.drop(columns=[target_column], axis=1)
-    train_data_for_model_A_y = train_data_for_model_A[target_column].to_numpy()
-
-    # Hyperparam search space for hyperopt
-    search_space = {
-        "learnRate": hp.choice("learnRate", [0.01, 0.03, 0.1]),
-        "batch_size": scope.int(hp.choice("batch_size", [32, 64, 128])),
-        "activation": hp.choice("activation", ["relu", "tanh"]),
-        "hidden_layer_sizes": hp.choice("hidden_layer_sizes", layer_neuron_orders),
-    }
-
-
-    # Third and Fourth folds
-    best_model_A = tune_parameters()
-
-    test_data_model_A_indexex = []
+        train_data_index += list(fold_index[index])
+    
+    evaluation_data_index = []
     for index in  folds[len(folds//2):len(folds)-1]:
         train_data_model_B_indexex += list(fold_index[index])
 
-    
-    test_data_for_model_A = data.iloc[test_data_model_A_indexex]
+    train_data = data.iloc[train_data_index]
+    evaluation_data = data.iloc[evaluation_data_index]
+    test_data = data.iloc[len(folds)]
+
+   
+    best_model_A = tune_parameters(train_data)
+
 
     # Test data for model_A without target column and answer
-    test_data_for_model_A_x = test_data_for_model_A.drop(columns=[target_column], axis=1)
-    test_data_for_model_A_y = test_data_for_model_A[target_column]
+    evaluation_data_x = evaluation_data.drop(columns=[target_column], axis=1)
+    evaluation_data_y = evaluation_data[target_column]
 
 
     # Traind model A make predictions
-    best_model_A_predictions = np.argmax(
-        best_model_A.predict(np.array(test_data_for_model_A_x)), axis=1
-    )
+    best_model_A_predictions = best_model_A.predict(evaluation_data_x)
+    
 
     # Compare between answer and predictions from model A
-    id_df = pd.DataFrame({"actual": test_data_for_model_A_y, "predicted": best_model_A_predictions})
-    incorrect = id_df[id_df["actual"] != id_df["predicted"]]
+    
+    correctness_df = pd.DataFrame((np.array(best_model_A_predictions) != np.array(evaluation_data_y))*1,index=evaluation_data_x.index)
 
-    incorrect_index = []
-    incorrect_index = incorrect.index
-
-    # Provide 0 to incorret, 1 to correct using incorrect_index
-    correctness = pd.Series(1, index=test_data_for_model_A_x.index)
-    correctness.loc[incorrect_index] = 0
-    correctness_df = correctness.to_frame(name="correctness")
 
     # Get the original test data from fold 3, fold 4 (Before processing)
 
-    best_model_B = tune_parameters()
+    best_model_B = tune_parameters(evaluation_data_x,correctness_df)
 
     # Predict fold 5 correctness probability
-    difficulty_data_for_model_B = data.loc[fold_index[folds[4]]]
-    difficulty_x = difficulty_data_for_model_B.drop(columns=[target_column], axis=1)
 
-    # Processing model fitted by third and fourth fold transform the fold 5
-    difficulty_x = processing.transform(difficulty_x)
+    test_data_x = test_data.drop(columns=[target_column], axis=1)
 
     # By doing 1- Difficult case is closer to 1, Easy case is closer to 0
-    predicted_difficulty = 1 - best_model_B.predict(difficulty_x)
-    predicted_difficulty = predicted_difficulty[:, 0].tolist()
+    predicted_difficulty = 1 - best_model_B.predict(test_data_x)
 
-    return (difficulty_data_for_model_B, predicted_difficulty)
+    return  predicted_difficulty
 
