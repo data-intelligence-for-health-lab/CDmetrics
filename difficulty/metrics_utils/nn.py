@@ -5,6 +5,9 @@ import itertools
 from sklearn.model_selection import KFold
 from sklearn.utils.multiclass import unique_labels
 
+from ray.tune.schedulers import AsyncHyperBandScheduler
+from ray.air.integrations.keras import ReportCheckpointCallback
+
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
 from keras.utils import np_utils
@@ -56,30 +59,20 @@ class NN:
             metrics=["accuracy"],
         )
 
-    def train(self, data_x,data_y):
+    def tune(config, data_x,data_y):
         """
         """
+        model = NN(config)
         es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
-        result = self.model.fit(
+        model.fit(
             data_x,
             data_y,
             verbose=0,
             validation_split=0.3,
-            batch_size=self.batch_size,
+            batch_size=config["batch_size"],
             epochs=100,
-            callbacks=[es],
+            callbacks=[es,ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"})],
         )
-        validation_loss = np.amin(result.history["val_loss"])
-        validation_acc = np.amax(result.history["val_accuracy"])
-
-        return {
-            "loss": validation_loss,
-            "acc": validation_acc,
-            "status": STATUS_OK,
-            "model": self.model,
-            "params": self.params,
-        }
-    
     def predict():
         """
         """
