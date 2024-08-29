@@ -10,7 +10,7 @@ from sklearn.utils.multiclass import unique_labels
 def binary_difficulty_formula(predictions, y_test):
     locations = abs(statistics.mean(predictions) - y_test)
     distribution = statistics.stdev(predictions) / math.sqrt(1 / 12)
-    difficulty = (statistics.mean(locations) + distribution) / 2
+    difficulty = locations + distribution / 2
     return difficulty
 
 
