@@ -19,27 +19,24 @@ from d_case_difficulty_metrics.api import PATH
 
 
 class NN:
-
     def __init__(self, params) -> None:
-
-        
         self.num_classes = params["num_classes"]
         self.model = tf.keras.models.Sequential()
         self.batch_size = params["batch_size"]
         self.params = params
-    # First hidden layer with input shape
-        self.model .add(
+        # First hidden layer with input shape
+        self.model.add(
             tf.keras.layers.Dense(
-                params["hidden_layer_sizes"][0],
+                params["number_of_neuron"][0],
                 input_shape=(params["input_size"]),
                 activation=params["activation"],
             )
         )
         # Second hidden layer to number of hidden layers
         for i in range(1, len(params["hidden_layer_sizes"])):
-            self.model .add(
+            self.model.add(
                 tf.keras.layers.Dense(
-                    params["hidden_layer_sizes"][i], activation=params["activation"]
+                    params["number_of_neuron"][i], activation=params["activation"]
                 )
             )
 
@@ -50,18 +47,19 @@ class NN:
             self.num_classes = 1
             self.loss_function = "binary_crossentropy"
             self.output_activation = "sigmoid"
-        
+
         # Ouput layer
-        self.model.add(tf.keras.layers.Dense(self.num_classes, activation=self.output_activation))
+        self.model.add(
+            tf.keras.layers.Dense(self.num_classes, activation=self.output_activation)
+        )
         self.model.compile(
             loss=self.loss_function,
             optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
             metrics=["accuracy"],
         )
 
-    def tune(config, data_x,data_y):
-        """
-        """
+    def tune(config, data_x, data_y):
+        """ """
         model = NN(config)
         es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
         model.fit(
@@ -71,8 +69,29 @@ class NN:
             validation_split=0.3,
             batch_size=config["batch_size"],
             epochs=100,
-            callbacks=[es,ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"})],
+            callbacks=[
+                es,
+                ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
+            ],
         )
+
+    def train(self, number_of_neuron, data_x, data_y):
+        """ """
+        self.params["number_of_neuron"] = number_of_neuron
+        model = self.model(self.params)
+        es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
+        model.fit(
+            data_x,
+            data_y,
+            verbose=0,
+            validation_split=0.3,
+            batch_size=32,
+            epochs=100,
+            callbacks=[
+                es,
+                ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
+            ],
+        )
+
     def predict():
-        """
-        """
+        """ """

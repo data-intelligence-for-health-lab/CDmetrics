@@ -1,73 +1,49 @@
 import numpy as np
 import pandas as pd
-import random
-
-from sklearn.model_selection import train_test_split
-from sklearn.utils.multiclass import unique_labels
-
-import tensorflow as tf
-from keras.utils import np_utils
-
-from d_case_difficulty_metrics.src.processing.curr_status import curr_status
-from d_case_difficulty_metrics.api import PATH
 from nn import NN
 
-import multiprocessing
-import sys
 
+def CDmc_main(data, number_of_NNs, target_column, params):
+    MNN = round(len(data) * 0.01)
+    Threshold = number_of_NNs * 0.9
 
-# manually generate the different random seed
-def random_generater():
-    return random.randint(1, 100000)
+    X_overall = data.drop(columns=[target_column], axis=1)
+    y_overall = data[target_column]
 
+    difficulity = []
+    for index in range(len(data)):
+        # Test case to check the difficulty
+        X_test = X_overall.iloc[[index]]
+        y_test = y_overall[index]
 
-# Model Complexity (NN)
-def nn_model_complexity_multiprocessing(
-    X, y, X_test, y_test, processing, number_of_neuron, output
-):
-    count = 0
+        # The rest of cases to be used for training
+        X = X_overall.drop(index=[index])
+        y = y_overall.drop(index=[index])
 
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.3, random_state=random_generater()
-    )
-
-    X_train_processed = processing.fit_transform(X_train)
-    X_val_processed = processing.transform(X_val)
-    X_test_processed = processing.transform(X_test)
-
-    print("y_train:", y_train)
-    num_classes = len(unique_labels(y_train))
-    print("num_classes:", num_classes)
-    if num_classes > 2:
-        y_train_processed = np_utils.to_categorical(y_train, num_classes)
-        y_val_processed = np_utils.to_categorical(y_val, num_classes)
-        loss_function = "categorical_crossentropy"
-        output_activation = "softmax"
-    else:
-        num_classes = 1
-        y_train_processed = y_train
-        y_val_processed = y_val
-        loss_function = "binary_crossentropy"
-        output_activation = "sigmoid"
-
-    model = tf.keras.models.Sequential()
-    model.add(
-        tf.keras.layers.Dense(
-            number_of_neuron,
-            input_shape=(X_train_processed.shape[1],),
-            activation="relu",
+        # NN having one hidden layer
+        params["hidden_layer_sizes"] = 1
+        model = NN(
+            params,
         )
-    )  # Increasing number of neuron
-    model =NN(num_classes,)
-    result = model.train()
-    y_test = np.argmax(y_test)
-    y_pred = np.argmax(model.predict(np.array(X_test_processed)), axis=1)
 
-    if np.all(y_pred == y_test):
-        count += 1
-    else:
-        count += 0
+        # Increate number of neuron in the NNs
+        # until it makes correct predictions than Threshold or reach the MNN
+        for number_of_neuron in range(MNN):
+            count = 0
+            if count < Threshold:
+                number_of_neuron += 1
+                count = 0
+                # Generate number_of_NNs number of NN models
+                for _ in range(number_of_NNs):
+                    trained_model = model.train(number_of_neuron, X, y)
+                    y_test = np.argmax(y_test)
+                    y_pred = np.argmax(trained_model.predict(np.array(X_test)), axis=1)
 
-    tf.keras.backend.clear_session()
-    output.put(count)
+                    if np.all(y_pred == y_test):
+                        count += 1
+                    else:
+                        count += 0
+            else:
+                difficulity.append(number_of_NNs / MNN)
 
+    return pd.DataFrame(difficulity)
