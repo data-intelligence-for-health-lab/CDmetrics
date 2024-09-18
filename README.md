@@ -1,5 +1,5 @@
 # CD_metrics
-Case difficulty (Instance Hardness) metrics in Python, with three ways to measure the difficulty of individual cases: CDmc, Ddm, and CDpu.
+Case Difficulty (Instance Hardness) metrics in Python, with three ways to measure the difficulty of individual cases: CDmc, CDdm, and CDpu.
 
 ## Case Difficulty Metrics
 - Case Difficulty Model Complexity **(CDmc)**
@@ -13,14 +13,13 @@ Case difficulty (Instance Hardness) metrics in Python, with three ways to measur
 
 
 ## Getting Started
-CD_metrics employes neural networks to measure the difficulty of individual cases in a datasets. The metrics were designed to perform well across various datasets and tailored to different definitions of prediction difficulty.
+CD_metrics employs neural networks to measure the difficulty of individual cases in a dataset. The metrics are tailored to different definitions of prediction difficulty and are designed to perform well across various datasets.
 
 
 ### Installation
-The package was developed with the Python. Below, we present the standard installation and guideline to use the CD_metrics to calcaulte case difficulty of own datasets. 
+The package was developed using Python. Below, we provide standard installation instructions and guidelines for using CD_metrics to calculate case difficulty on your own datasets.
 
 _For users_
-
 ```
 pip install CD_metrics
 ```
@@ -33,48 +32,60 @@ We **strongly recommend** using a separate Python environment. We provide an env
 conda env create --file environment.yml
 ```
 
-
 ### Usage
 
-Each metrics require specific parameters to run.
+Each metric requires certain parameters to run.
 
-- CDmc needs number_of_NNs (Number of neural network models to test)
-- CDdm needs num_folds (Number of folds to divide the data)
-- CDpu needs number_of_predictions (number of prediction probabilites to generate)
+- CDmc requires number_of_NNs (the number of neural network models to predict the test case):
+```
+from difficulty.metrics_utils import model_complexity_score
+CDmc_main(data, number_of_NNs, target_column, params)
+```
 
+- CDdm requires num_folds (the number of folds to divide the data):
+```
+from difficulty.metrics_utils import  double_model_score
+CDdm_main(data, num_folds, target_column)
+```
 
+- CDpu requires number_of_predictions (the number of prediction probabilities to generate):
+```
+from difficulty.metrics_utils import prediction_uncertainty_score
+CDpu_main(data, target_column, number_of_predictions)
+```
+
+The hyperparameters are tuned using HyperOptSearch with Ray.
+To modify the hyperparameter methods and search space, update the values in metrics_utils/utils.py.
 
 ### Guidelines for input dataset
 
 Please follow the recommendations below:
 
-* Only `xlsx` files are accepted
+* Only `xlsx` files are accepted.
 
-* The dataset should be cleaned with preprocessing (scaling, imputation, and encoding need to be done before run CD_metrics)
+* The dataset should be preprocessed (scaling, imputation, and encoding must be done before running CD_metrics).
 
-* The user need to assign proper categorical columns, numeric columns, and target column
-  
-* The metrics can only do classification problem
+* Do not include any index column.
 
+* The target column name must be clearly specified..
+
+* The metrics only support classification problems based on tabular data.
 
 ## Citation
 
-If you're using CD_metrics in your research or application, please cite our [paper](https://link):
+If you're using CD_metrics in your research or application, please cite our [paper](https://www.nature.com/articles/s41598-024-61284-z):
 
-> Paper info 
+> Kwon, H., Greenberg, M., Josephson, C.B. and Lee, J., 2024. Measuring the prediction difficulty of individual cases in a dataset using machine learning. Scientific Reports, 14(1), p.10474.
 
 ```
-@article{paiva2022relating,
-      title={ },
-      author={ },
-      journal={ },
-      volume={ },
-      number={ },
-      pages={ },
-      year={ },
-      publisher={ }
+@article{kwon2024measuring,
+  title={Measuring the prediction difficulty of individual cases in a dataset using machine learning},
+  author={Kwon, Hyunjin and Greenberg, Matthew and Josephson, Colin Bruce and Lee, Joon},
+  journal={Scientific Reports},
+  volume={14},
+  number={1},
+  pages={10474},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
-
-
-## References
