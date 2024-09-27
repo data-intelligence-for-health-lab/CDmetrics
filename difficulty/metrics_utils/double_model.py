@@ -32,12 +32,12 @@ def compute_metric(data, num_folds,target_column):
         evaluation_data_x = evaluation_data.drop(columns=[target_column], axis=1)
         evaluation_data_y = evaluation_data[target_column]
         best_model_A_predictions = best_model_A.predict(evaluation_data_x)
-        correctness_df = pd.DataFrame((np.array(best_model_A_predictions) != np.array(evaluation_data_y))*1,index=evaluation_data_x.index)
-        best_model_B = NN(tune_parameters(NN.tune,evaluation_data_x,correctness_df))
-        test_data_x = test_data.drop(columns=[target_column], axis=1)
-        predicted_difficulty = 1 - best_model_B.predict(test_data_x)
-        difficulity += predicted_difficulty
-        difficulity_index =+ test_data_index
+        evaluation_data[target_column] = pd.DataFrame((np.array(best_model_A_predictions.reshape(-1)) != np.array(evaluation_data_y))*1,index=evaluation_data_x.index)
         
+        best_model_B = NN(tune_parameters(NN.tune,evaluation_data,target_column)).model
+        test_data_x = test_data.drop(columns=[target_column], axis=1)
+        predicted_difficulty = 1 - best_model_B.predict(test_data_x).reshape(-1)
+        difficulity.extend(predicted_difficulty)
+        difficulity_index.extend(test_data_index)
     return   pd.DataFrame(difficulity, index=difficulity_index)
 
