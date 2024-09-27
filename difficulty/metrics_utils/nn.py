@@ -10,13 +10,6 @@ from ray.air.integrations.keras import ReportCheckpointCallback
 
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
-from keras.utils import np_utils
-
-from hyperopt.pyll.base import scope
-from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
-
-from d_case_difficulty_metrics.api import PATH
-
 
 class NN:
     def __init__(self, params) -> None:
@@ -27,16 +20,16 @@ class NN:
         # First hidden layer with input shape
         self.model.add(
             tf.keras.layers.Dense(
-                params["number_of_neuron"][0],
-                input_shape=(params["input_size"]),
+                params["number_of_neurons"][0],
+                input_shape=(params["input_size"],),
                 activation=params["activation"],
             )
         )
         # Second hidden layer to number of hidden layers
-        for i in range(1, len(params["hidden_layer_sizes"])):
+        for i in range(1, len(params["number_of_neurons"])):
             self.model.add(
                 tf.keras.layers.Dense(
-                    params["number_of_neuron"][i], activation=params["activation"]
+                    params["number_of_neurons"][i], activation=params["activation"]
                 )
             )
 
@@ -60,7 +53,9 @@ class NN:
 
     def tune(config, data_x, data_y):
         """ """
-        model = NN(config)
+        config["num_classes"] = len(set(data_y.values))
+        config["input_size"] = len(data_x.columns)
+        model = NN(config).model
         es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
         model.fit(
             data_x,
