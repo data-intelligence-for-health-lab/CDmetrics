@@ -3,9 +3,7 @@ import numpy as np
 import itertools
 
 from sklearn.model_selection import KFold
-from sklearn.utils.multiclass import unique_labels
 
-from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.air.integrations.keras import ReportCheckpointCallback
 
 import tensorflow as tf

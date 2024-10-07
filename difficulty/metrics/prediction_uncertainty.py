@@ -1,12 +1,9 @@
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
-import statistics
 import math
 from  difficulty.metrics.nn import NN
 from difficulty.metrics.utils import tune_parameters
-
-
 
 
 
@@ -47,21 +44,12 @@ def binary_difficulty_formula(predictions, y_test):
 
 
 def multi_difficulty_formula(predictions, y_test,num_classes):
-    # predictions: [[0,0,1],[0,1,0],[0,1,0]]....,[0,0,1]] number_of_predictions
-
-    # one hot encoded y_test. e.g. 1-> [1,0,0] 2 -> [0,1,0] 3-> [0,0,1]
     one_hot_vector = [0] * num_classes
     one_hot_vector[y_test] = 1
-
-    location = abs(np.mean(predictions,axis=2) - one_hot_vector)
-
-    # Calculate the distribution
-    distribution = np.std(predictions,axis=2) / math.sqrt(1 / 12)
-
-    # Calculate difficulty for each class
+    location = abs(np.mean(predictions,axis=0) - one_hot_vector)
+    distribution = np.std(predictions,axis=0) / math.sqrt(1 / 12)
     class_difficulty = (location + distribution) / 2
-
-    difficulty = np.mean(class_difficulty,axis=0)
+    difficulty = np.mean(class_difficulty,axis=1)
     return difficulty  
 
 
