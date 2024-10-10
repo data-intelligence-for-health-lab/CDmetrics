@@ -30,10 +30,7 @@ def compute_metric(data, target_column, number_of_predictions,max_layers,max_uni
             
         else:
             difficulity.append(binary_difficulty_formula(predictions, test_data_y))
-            
-
     return pd.DataFrame(difficulity)
-
 
 
 def binary_difficulty_formula(predictions, y_test):

@@ -1,7 +1,7 @@
 
 import logging
 import ray
-from ray import air, tune,train
+from ray import tune,train
 import itertools
 import warnings
 warnings.filterwarnings('ignore')
@@ -12,9 +12,11 @@ def get_available_resources():
     :return: _description_
     :rtype: _type_
     """
-    ray.init(logging_level=logging.CRITICAL,log_to_driver=False)
+    if not ray.is_initialized():
+        ray.init(logging_level=logging.CRITICAL,log_to_driver=False)
     resource = ray.cluster_resources()
-    ray.shutdown()
+    if ray.is_initialized():
+        ray.shutdown()
     return {'CPU':resource.get('CPU'),'GPU':resource.get('GPU')}
 
 def tune_parameters(model,data,target_column,max_layers,max_units, resources):
@@ -40,7 +42,6 @@ def tune_parameters(model,data,target_column,max_layers,max_units, resources):
     "input_size" : len(X.columns)
 
 }
-
 
     trainer_with_resources = tune.with_resources(
             tune.with_parameters(model, data_x=X, data_y=Y),resources=resources)

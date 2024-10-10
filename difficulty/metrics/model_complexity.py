@@ -3,8 +3,8 @@ import pandas as pd
 from nn import NN
 
 
-def CDmc_main(data, number_of_NNs, target_column, params):
-    MNN = round(len(data) * 0.01)
+def compute_metric(data, number_of_NNs, target_column, params):
+    max_hidden_units = round(len(data) * 0.01)
     Threshold = number_of_NNs * 0.9
 
     X_overall = data.drop(columns=[target_column], axis=1)
@@ -25,17 +25,17 @@ def CDmc_main(data, number_of_NNs, target_column, params):
         model = NN(
             params,
         )
-
         # Increate number of neuron in the NNs
         # until it makes correct predictions than Threshold or reach the MNN
-        for number_of_neuron in range(MNN):
+        n_neureons_hidden_layer = 0
+        while n_neureons_hidden_layer < max_hidden_units:
             count = 0
             if count < Threshold:
-                number_of_neuron += 1
+                n_neureons_hidden_layer += 1
                 count = 0
                 # Generate number_of_NNs number of NN models
                 for _ in range(number_of_NNs):
-                    trained_model = model.train(number_of_neuron, X, y)
+                    trained_model = model.train(n_neureons_hidden_layer, X, y)
                     y_test = np.argmax(y_test)
                     y_pred = np.argmax(trained_model.predict(np.array(X_test)), axis=1)
 
@@ -44,6 +44,6 @@ def CDmc_main(data, number_of_NNs, target_column, params):
                     else:
                         count += 0
             else:
-                difficulity.append(number_of_NNs / MNN)
+                difficulity.append(n_neureons_hidden_layer / max_hidden_units)
 
     return pd.DataFrame(difficulity)
