@@ -3,11 +3,11 @@ import numpy as np
 import itertools
 
 from sklearn.model_selection import KFold
-
 from ray.air.integrations.keras import ReportCheckpointCallback
 
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
+
 
 class NN:
     def __init__(self, params) -> None:
