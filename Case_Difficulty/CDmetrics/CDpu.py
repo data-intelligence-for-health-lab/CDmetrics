@@ -11,13 +11,11 @@ def compute_metric(
 ):
     difficulity = []
     for index in tqdm(range(len(data))):
-        # One test case to check the difficulty
         test_data = data.iloc[[index]]
         test_data_x = test_data.drop(columns=[target_column], axis=1)
         test_data_y = test_data[target_column]
         train_data = data.drop(index=index, axis=0)
 
-        # hyperparm Tuning
         best_config = tune_parameters(
             NN.tune, train_data, target_column, max_layers, max_units, resources
         )
@@ -25,7 +23,6 @@ def compute_metric(
         predictions = []
         for i in range(number_of_predictions):
             prediction = best_model.model.predict(test_data_x, verbose=0).reshape(-1)
-            # Generate number_of_predictions number of predictions
             predictions.append(prediction)
 
         if best_model.num_classes > 2:
@@ -46,7 +43,6 @@ def compute_metric(
 def binary_difficulty_formula(predictions, y_test):
     locations = abs(np.mean(predictions, axis=0) - y_test)
     distribution = np.std(predictions, axis=0) / math.sqrt(1 / 12)
-
     difficulty = locations + distribution / 2
     return difficulty
 

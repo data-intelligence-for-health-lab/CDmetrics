@@ -35,10 +35,10 @@ def tune_parameters(model, data, target_column, max_layers, max_units, resources
     X = data.drop(target_column, axis=1)
     Y = data[target_column]
     search_space = {
-        "learnRate": tune.choice([0.1]),
-        "batch_size": tune.choice([128]),
-        "activation": tune.choice(["relu"]),
-        "number_of_neurons": tune.choice(layer_neuron_orders),
+        "learnRate": tune.grid_search([0.01, 0.03, 0.1]),
+        "batch_size": tune.grid_search([32, 64, 128]),
+        "activation": tune.grid_search(["relu", "tanh"]),
+        "number_of_neurons": tune.grid_search(layer_neuron_orders),
         "num_classes": len(set(Y.values)),
         "input_size": len(X.columns),
     }
