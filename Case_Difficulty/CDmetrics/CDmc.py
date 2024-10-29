@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from nn import NN
+from Case_Difficulty.CDmetrics.nn import NN
 
 
-def compute_metric(data, number_of_NNs, target_column, params):
+def compute_metric(data, number_of_NNs, target_column):
     max_hidden_units = round(len(data) * 0.01)
     Threshold = number_of_NNs * 0.9
 
@@ -12,38 +12,41 @@ def compute_metric(data, number_of_NNs, target_column, params):
 
     difficulity = []
     for index in range(len(data)):
-        # Test case to check the difficulty
         X_test = X_overall.iloc[[index]]
         y_test = y_overall[index]
 
-        # The rest of cases to be used for training
         X = X_overall.drop(index=[index])
         y = y_overall.drop(index=[index])
 
-        # NN having one hidden layer
-        params["hidden_layer_sizes"] = 1
-        model = NN(
-            params,
+        params = {}
+        params.update(
+            {
+                "learnRate": 0.01,
+                "batch_size": 32,
+                "activation": "relu",
+                "num_classes": len(set(y.values)),
+                "input_size": len(X.columns),
+            }
         )
-        # Increate number of neuron in the NNs
-        # until it makes correct predictions than Threshold or reach the MNN
+
         n_neureons_hidden_layer = 0
+        count = 0
         while n_neureons_hidden_layer < max_hidden_units:
-            count = 0
             if count < Threshold:
                 n_neureons_hidden_layer += 1
                 count = 0
-                # Generate number_of_NNs number of NN models
                 for _ in range(number_of_NNs):
-                    trained_model = model.train(n_neureons_hidden_layer, X, y)
+                    params.update({"number_of_neurons": [n_neureons_hidden_layer]})
+                    model = NN(params)
+                    trained_model = model.train(X, y)
                     y_test = np.argmax(y_test)
                     y_pred = np.argmax(trained_model.predict(np.array(X_test)), axis=1)
-
                     if np.all(y_pred == y_test):
                         count += 1
                     else:
                         count += 0
             else:
                 difficulity.append(n_neureons_hidden_layer / max_hidden_units)
+                break
 
     return pd.DataFrame(difficulity)

@@ -70,12 +70,10 @@ class NN:
             ],
         )
 
-    def train(self, number_of_neuron, data_x, data_y):
+    def train(self, data_x, data_y):
         """ """
-        self.params["number_of_neuron"] = number_of_neuron
-        model = self.model(self.params)
         es = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=30)
-        model.fit(
+        self.model.fit(
             data_x,
             data_y,
             verbose=0,
@@ -88,5 +86,7 @@ class NN:
             ],
         )
 
-    def predict():
+        return self.model
+
+    def predict(X_test):
         """ """
