@@ -27,19 +27,26 @@ def compute_metric(
             prediction = best_model.model.predict(test_data_x, verbose=0).reshape(-1)
             # Generate number_of_predictions number of predictions
             predictions.append(prediction)
+
         if best_model.num_classes > 2:
             difficulity.append(
-                multi_difficulty_formula(predictions, test_data_y, NN.num_classes)
+                multi_difficulty_formula(
+                    predictions, test_data_y, NN.num_classes
+                ).values
             )
 
         else:
-            difficulity.append(binary_difficulty_formula(predictions, test_data_y))
+            difficulity.append(
+                binary_difficulty_formula(predictions, test_data_y).values
+            )
+
     return pd.DataFrame(difficulity)
 
 
 def binary_difficulty_formula(predictions, y_test):
     locations = abs(np.mean(predictions, axis=0) - y_test)
     distribution = np.std(predictions, axis=0) / math.sqrt(1 / 12)
+
     difficulty = locations + distribution / 2
     return difficulty
 
