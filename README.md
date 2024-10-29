@@ -26,7 +26,7 @@ pip install CDmetrics
 
 #### Anaconda environment
 
-We **strongly recommend** using a separate Python environment. We provide an env file [environment.yml](./environment.yml) to create a conda env with all required dependencies:
+We **strongly recommend** using a separate Python environment. We provide an env file [environment.yml](./environment.yml) to create a conda environment with all required dependencies:
 
 ```
 conda env create --file environment.yml
@@ -54,7 +54,7 @@ from Case_Difficulty.CDmetrics import CDpu
 CDpu.compute_metric(data, target_column, number_of_predictions, max_layers, max_units, resources)
 ```
 
-The hyperparameters are tuned using HyperOptSearch with Ray.
+The hyperparameters are tuned using Grid Search with Ray.
 To change the hyperparameter search space, update the search_space in tune_parameters function in CDmetrics/utils.py.
 
 ### Guidelines for input dataset
