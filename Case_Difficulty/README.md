@@ -45,19 +45,19 @@ Each metric requires certain parameters to run.
 
 - CDmc requires number_of_NNs (the number of neural network models to make predictions):
 ```
-from Case_Difficulty.CDmetrics import CDmc
+from CDmetrics import CDmc
 CDmc.compute_metric(data, number_of_NNs, target_column)
 ```
 
 - CDdm requires num_folds (the number of folds to divide the data):
 ```
-from Case_Difficulty.CDmetrics import CDdm
+from CDmetrics import CDdm
 CDdm.compute_metric(data, num_folds, target_column, max_layers, max_units, resources)
 ```
 
 - CDpu requires number_of_predictions (the number of prediction probabilities to generate):
 ```
-from Case_Difficulty.CDmetrics import CDpu
+from CDmetrics import CDpu
 CDpu.compute_metric(data, target_column, number_of_predictions, max_layers, max_units, resources)
 ```
 

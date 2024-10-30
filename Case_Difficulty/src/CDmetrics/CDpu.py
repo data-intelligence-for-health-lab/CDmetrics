@@ -2,8 +2,8 @@ import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import math
-from Case_Difficulty.CDmetrics.nn import NN
-from Case_Difficulty.CDmetrics.utils import tune_parameters
+from CDmetrics.nn import NN
+from CDmetrics.utils import tune_parameters
 
 
 def compute_metric(

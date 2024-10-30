@@ -1,10 +1,10 @@
 import pandas as pd
 from tqdm import tqdm
-from Case_Difficulty.CDmetrics.utils import tune_parameters
+from CDmetrics.utils import tune_parameters
 import numpy as np
 
 from sklearn.model_selection import KFold
-from Case_Difficulty.CDmetrics.nn import NN
+from CDmetrics.nn import NN
 
 
 def compute_metric(data, num_folds, target_column, max_layers, max_units, resources):

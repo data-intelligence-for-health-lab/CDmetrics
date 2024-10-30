@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from Case_Difficulty.CDmetrics.nn import NN
+from CDmetrics.nn import NN
 
 
 def compute_metric(data, number_of_NNs, target_column):
