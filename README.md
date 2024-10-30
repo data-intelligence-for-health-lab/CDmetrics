@@ -27,8 +27,6 @@ pip install CDmetrics
 _For developers_
 ```
 git clone https://github.com/data-intelligence-for-health-lab/CDmetrics.git
-
-cd CDmetrics
 ```
 
 #### Anaconda environment

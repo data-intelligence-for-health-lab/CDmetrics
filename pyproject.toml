@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "CDmetrics"
-version = "0.1.4"
-description = "Case difficulty metrics"
+name = "cdmetrics"
+version = "0.1.5"
+description = "Calculate case difficulty within datasets"
 authors = [
     { name = "Eulee Kwon", email = "euleekwon@gmail.com"},
     { name = "Yves Nsoga", email = "nsogan@gmail.com" }
@@ -29,4 +29,4 @@ dependencies = [
 
 [project.urls]
 homepage = "https://cumming.ucalgary.ca/lab/dih/projects/current-projects/development-novel-case-specific-machine-learning-methodologies"
-repository = "https://github.com/data-intelligence-for-health-lab/d_metrics"
+repository = "https://github.com/data-intelligence-for-health-lab/CDmetrics.git"
