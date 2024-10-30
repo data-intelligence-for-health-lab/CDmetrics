@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdmetrics"
+version = "0.1.6"
+description = "Calculate case difficulty within datasets"
+authors = [
+    { name = "Eulee Kwon", email = "euleekwon@gmail.com"},
+    { name = "Yves Nsoga", email = "nsogan@gmail.com" }
+]
+readme = "README.md"
+keywords = ["data_difficulty", "case_difficulty", "instance_hardness", "difficulty"]
+requires-python = ">=3.9"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "pandas",
+    "scikit-learn",
+    "tensorflow",
+    "tqdm",
+    "ray==2.11.0",
+    "ray[train]"
+]
+
+[project.urls]
+homepage = "https://cumming.ucalgary.ca/lab/dih/projects/current-projects/development-novel-case-specific-machine-learning-methodologies"
+repository = "https://github.com/data-intelligence-for-health-lab/CDmetrics.git"
