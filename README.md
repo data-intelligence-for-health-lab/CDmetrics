@@ -21,7 +21,7 @@ The package was developed using Python. Below, we provide standard installation 
 
 _For users_
 ```
-pip install CDmetrics
+pip install cdmetrics
 ```
 
 _For developers_
