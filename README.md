@@ -24,6 +24,13 @@ _For users_
 pip install CDmetrics
 ```
 
+_For developers_
+```
+git clone https://github.com/data-intelligence-for-health-lab/CDmetrics.git
+
+cd CDmetrics
+```
+
 #### Anaconda environment
 
 We **strongly recommend** using a separate Python environment. We provide an env file [environment.yml](./environment.yml) to create a conda environment with all required dependencies:
@@ -36,7 +43,7 @@ conda env create --file environment.yml
 
 Each metric requires certain parameters to run.
 
-- CDmc requires number_of_NNs (the number of neural network models to predict the test case):
+- CDmc requires number_of_NNs (the number of neural network models to make predictions):
 ```
 from Case_Difficulty.CDmetrics import CDmc
 CDmc.compute_metric(data, number_of_NNs, target_column)
