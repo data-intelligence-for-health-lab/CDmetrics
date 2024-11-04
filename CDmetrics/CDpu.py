@@ -4,6 +4,7 @@ import numpy as np
 import math
 from CDmetrics.nn import NN
 from CDmetrics.utils import tune_parameters
+from tensorflow.keras.utils import to_categorical
 
 
 def compute_metric(
@@ -13,8 +14,16 @@ def compute_metric(
     for index in tqdm(range(len(data))):
         test_data = data.iloc[[index]]
         test_data_x = test_data.drop(columns=[target_column], axis=1)
-        test_data_y = test_data[target_column]
+        test_data_y = test_data[target_column].values
+
         train_data = data.drop(index=index, axis=0)
+        train_data_x = train_data.drop(columns=[target_column], axis=1)
+        train_data_y = train_data[target_column].values
+        
+        n_classes = len(set(data[target_column]))
+        if n_classes > 2:
+            test_data_y = to_categorical(test_data_y, num_classes=n_classes)
+            train_data_y = to_categorical(train_data_y, num_classes=n_classes)
 
         best_config = tune_parameters(
             NN.tune, train_data, target_column, max_layers, max_units, resources
@@ -22,20 +31,18 @@ def compute_metric(
         best_model = NN(best_config)
         predictions = []
         for i in range(number_of_predictions):
-            prediction = best_model.model.predict(test_data_x, verbose=0).reshape(-1)
+            model = best_model.train(train_data_x, train_data_y)
+            prediction = model.predict(test_data_x)
             predictions.append(prediction)
-
-        if best_model.num_classes > 2:
+        
+        if n_classes > 2:
             difficulity.append(
                 multi_difficulty_formula(
-                    predictions, test_data_y, NN.num_classes
-                ).values
-            )
+                    predictions, test_data_y))
 
         else:
             difficulity.append(
-                binary_difficulty_formula(predictions, test_data_y).values
-            )
+                binary_difficulty_formula(predictions, test_data_y))
 
     return pd.DataFrame(difficulity)
 
@@ -44,14 +51,13 @@ def binary_difficulty_formula(predictions, y_test):
     locations = abs(np.mean(predictions, axis=0) - y_test)
     distribution = np.std(predictions, axis=0) / math.sqrt(1 / 12)
     difficulty = locations + distribution / 2
-    return difficulty
+    return difficulty.item()
 
 
-def multi_difficulty_formula(predictions, y_test, num_classes):
-    one_hot_vector = [0] * num_classes
-    one_hot_vector[y_test] = 1
-    location = abs(np.mean(predictions, axis=0) - one_hot_vector)
+def multi_difficulty_formula(predictions, y_test):
+    location = abs(np.mean(predictions, axis=0) - y_test)
     distribution = np.std(predictions, axis=0) / math.sqrt(1 / 12)
     class_difficulty = (location + distribution) / 2
-    difficulty = np.mean(class_difficulty, axis=1)
+    difficulty = np.mean(class_difficulty)
     return difficulty
+

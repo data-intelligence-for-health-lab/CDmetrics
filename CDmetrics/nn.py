@@ -35,7 +35,6 @@ class NN:
             self.num_classes = 1
             self.loss_function = "binary_crossentropy"
             self.output_activation = "sigmoid"
-            self.output_activation = "softmax"
 
         # Ouput layer
         self.model.add(
@@ -62,7 +61,7 @@ class NN:
             callbacks=[
                 es,
                 ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
-            ],
+            ]
         )
 
     def train(self, data_x, data_y):
@@ -73,7 +72,7 @@ class NN:
             data_y,
             verbose=0,
             validation_split=0.3,
-            batch_size=32,
+            batch_size=self.batch_size,
             epochs=100,
             callbacks=[
                 es,
@@ -82,6 +81,3 @@ class NN:
         )
 
         return self.model
-
-    def predict(X_test):
-        """ """
