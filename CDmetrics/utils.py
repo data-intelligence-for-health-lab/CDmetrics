@@ -3,6 +3,7 @@ import ray
 from ray import tune, train
 import itertools
 import warnings
+from tensorflow.keras.utils import to_categorical
 
 warnings.filterwarnings("ignore")
 
@@ -34,12 +35,17 @@ def tune_parameters(model, data, target_column, max_layers, max_units, resources
     ]
     X = data.drop(target_column, axis=1)
     Y = data[target_column]
+
+    n_classes = len(set(Y.values))
+    if n_classes > 2:
+        Y = to_categorical(Y, num_classes=n_classes)   
+
     search_space = {
         "learnRate": tune.grid_search([0.01, 0.03, 0.1]),
         "batch_size": tune.grid_search([32, 64, 128]),
         "activation": tune.grid_search(["relu", "tanh"]),
         "number_of_neurons": tune.grid_search(layer_neuron_orders),
-        "num_classes": len(set(Y.values)),
+        "num_classes": n_classes,
         "input_size": len(X.columns),
     }
 
