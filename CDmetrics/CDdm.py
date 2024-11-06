@@ -52,11 +52,13 @@ def compute_metric(data, num_folds, target_column, max_layers, max_units, resour
         
         model_A = best_model_A.train(train_data_x, train_data_y)
         best_model_A_predictions = model_A.predict(evaluation_data_x)
+
+        # Provide 0 to incorrect, 1 to correct
         evaluation_data[target_column] = pd.DataFrame(
             (
-                (
+                (   
                     np.argmax(best_model_A_predictions, axis=1)
-                    != np.array(evaluation_data_y)
+                    == np.array(evaluation_data_y)
                 ).astype(int)
             )
             * 1,
