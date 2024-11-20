@@ -2,6 +2,8 @@
 import logging
 import ray
 from ray import tune,train
+from ray.train import Result, RunConfig, ScalingConfig
+from ray.train.tensorflow import TensorflowTrainer
 import itertools
 import warnings
 warnings.filterwarnings('ignore')
@@ -61,5 +63,23 @@ def tune_parameters(model,data,target_column,max_layers,max_units, resources):
     best_config = tuning_result.get_best_result().config
 
     return best_config
+
+
+def train_model(
+    model,
+    num_workers: int = 2,
+    use_gpu: bool = False,
+    epochs: int = 4,
+    storage_path: str = None,
+) -> Result:
+    config = {"lr": 1e-3, "batch_size": 64, "epochs": epochs}
+    trainer = TensorflowTrainer(
+        train_loop_per_worker=model,
+        train_loop_config=config,
+        scaling_config=ScalingConfig(num_workers=num_workers, use_gpu=use_gpu),
+        run_config=RunConfig(storage_path=storage_path),
+    )
+    results = trainer.fit()
+    return results
 
 

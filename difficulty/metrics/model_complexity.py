@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from nn import NN
+from difficulty.metrics.utils import train_model
 
 
 def compute_metric(data, number_of_NNs, target_column, params):
@@ -9,7 +10,7 @@ def compute_metric(data, number_of_NNs, target_column, params):
 
     X_overall = data.drop(columns=[target_column], axis=1)
     y_overall = data[target_column]
-
+    
     difficulity = []
     for index in range(len(data)):
         # Test case to check the difficulty
@@ -22,9 +23,7 @@ def compute_metric(data, number_of_NNs, target_column, params):
 
         # NN having one hidden layer
         params["hidden_layer_sizes"] = 1
-        model = NN(
-            params,
-        )
+
         # Increate number of neuron in the NNs
         # until it makes correct predictions than Threshold or reach the MNN
         n_neureons_hidden_layer = 0
@@ -35,6 +34,7 @@ def compute_metric(data, number_of_NNs, target_column, params):
                 count = 0
                 # Generate number_of_NNs number of NN models
                 for _ in range(number_of_NNs):
+                    model = NN(params)
                     trained_model = model.train(n_neureons_hidden_layer, X, y)
                     y_test = np.argmax(y_test)
                     y_pred = np.argmax(trained_model.predict(np.array(X_test)), axis=1)
