@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from CDmetrics.nn import NN
 from tensorflow.keras.utils import to_categorical
+from tqdm import tqdm
 import multiprocessing
 
 
@@ -27,7 +28,8 @@ def compute_metric(data, number_of_NNs, target_column, resources):
     )
 
     difficulity = []
-    for index in range(len(data)):
+    for index in tqdm(range(len(data))):
+
         X_test = X_overall.iloc[[index]]
         y_test = y_overall[index]
         y_test = np.argmax(y_test) if y_overall.shape[-1] > 1 else int(y_test)

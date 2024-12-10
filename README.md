@@ -44,7 +44,7 @@ Each metric requires certain parameters to run.
 - CDmc requires number_of_NNs (the number of neural network models to make predictions):
 ```
 from CDmetrics import CDmc
-CDmc.compute_metric(data, number_of_NNs, target_column)
+CDmc.compute_metric(data, number_of_NNs, target_column, resources)
 ```
 
 - CDdm requires num_folds (the number of folds to divide the data):
@@ -71,6 +71,7 @@ Please follow the recommendations below:
 * Do not include any index column.
 * The target column name must be clearly specified.
 * The metrics only support classification problems with tabular data.
+* CDmc requires data with more than 100 cases to run.
 
 ## Citation
 
