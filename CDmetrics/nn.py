@@ -61,7 +61,7 @@ class NN:
             callbacks=[
                 es,
                 ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
-            ]
+            ],
         )
 
     def train(self, data_x, data_y):

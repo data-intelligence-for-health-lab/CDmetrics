@@ -19,6 +19,7 @@ def compute_metric(
 ):
     num_cpus = resources.get("CPU")
     difficulity = []
+    data = data.reset_index(drop=True)
     for index in tqdm(range(len(data))):
         test_data = data.iloc[[index]]
         test_data_x = test_data.drop(columns=[target_column], axis=1)

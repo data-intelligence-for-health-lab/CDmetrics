@@ -41,7 +41,7 @@ def compute_metric(data, num_folds, target_column, max_layers, max_units, resour
 
         n_classes = len(set(train_data[target_column]))
         if n_classes > 2:
-            train_data_y = to_categorical(train_data_y, num_classes=n_classes)       
+            train_data_y = to_categorical(train_data_y, num_classes=n_classes)
 
 
         best_model_A = NN(
@@ -74,12 +74,12 @@ def compute_metric(data, num_folds, target_column, max_layers, max_units, resour
                 resources,
             )
         )
-        model_B = best_model_B.train(evaluation_data.drop(columns=[target_column], axis=1), evaluation_data[target_column].values)
-        test_data_x = test_data.drop(columns=[target_column], axis=1)
-        predicted_difficulty = 1 - model_B.predict(test_data_x, verbose=0).reshape(
-            -1
+        model_B = best_model_B.train(
+            evaluation_data.drop(columns=[target_column], axis=1),
+            evaluation_data[target_column].values,
         )
+        test_data_x = test_data.drop(columns=[target_column], axis=1)
+        predicted_difficulty = 1 - model_B.predict(test_data_x, verbose=0).reshape(-1)
         difficulity.extend(predicted_difficulty)
         difficulity_index.extend(test_data_index)
     return pd.DataFrame(difficulity, index=difficulity_index)
-

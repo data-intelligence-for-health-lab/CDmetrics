@@ -38,7 +38,7 @@ def tune_parameters(model, data, target_column, max_layers, max_units, resources
 
     n_classes = len(set(Y.values))
     if n_classes > 2:
-        Y = to_categorical(Y, num_classes=n_classes)   
+        Y = to_categorical(Y, num_classes=n_classes)
 
     search_space = {
         "learnRate": tune.grid_search([0.01, 0.03, 0.1]),
