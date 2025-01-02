@@ -39,23 +39,49 @@ conda env create --file environment.yml
 
 ### Usage
 
-Each metric requires certain parameters to run.
+Each metric in CDmetrics requires specific parameters to run.
 
-- CDmc requires number_of_NNs (the number of neural network models to make predictions):
+- CDmc
+  - number_of_NNs: The number of neural network models used to make predictions.
+  - resources: The number of CPUs for multi-processing.
 ```
 from CDmetrics import CDmc
+
+number_of_NNs = 20
+resources = {"CPU": 10, "GPU": 0}
+
 CDmc.compute_metric(data, number_of_NNs, target_column, resources)
 ```
 
-- CDdm requires num_folds (the number of folds to divide the data):
+- CDdm
+  - num_folds: The number of folds to divide the data.
+  - max_layers: The maximum number of layers for the neural network hyperparameter tuning range.
+  - max_units: The maximum number of units for the neural network hyperparameter tuning range.
+  - resources: The number of CPUs and GPUs for hyperparameter tuning with Ray.
 ```
 from CDmetrics import CDdm
+
+number_of_folds = 5
+max_layers = 2
+max_units = 3
+resources = {"CPU": 10, "GPU": 0}
+
 CDdm.compute_metric(data, num_folds, target_column, max_layers, max_units, resources)
 ```
 
-- CDpu requires number_of_predictions (the number of prediction probabilities to generate):
+- CDpu
+  - number_of_predictions: The number of prediction probabilities to generate.
+  - max_layers: The maximum number of layers for the neural network hyperparameter tuning range.
+  - max_units: The maximum number of units for the neural network hyperparameter tuning range.
+  - resources: The number of CPUs for multi-processing, and CPUs and GPUs for hyperparameter tuning with Ray.
 ```
 from CDmetrics import CDpu
+
+number_of_predictions = 100
+max_layers = 2
+max_units = 3
+resources = {"CPU": 10, "GPU": 0}
+
 CDpu.compute_metric(data, target_column, number_of_predictions, max_layers, max_units, resources)
 ```
 
