@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdmetrics"
-version = "0.1.6"
+version = "0.1.7"
 description = "Calculate case difficulty within datasets"
 authors = [
     { name = "Eulee Kwon", email = "euleekwon@gmail.com"},

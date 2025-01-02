@@ -4,3 +4,7 @@ __pycache__/
 # Build artifacts for pypi
 dist/
 *.egg-info/
+
+
+# Test file
+/test_run.py
