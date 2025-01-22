@@ -9,22 +9,25 @@ class NN:
         self.num_classes = params["num_classes"]
 
         self.batch_size = params["batch_size"]
+        self.validation_split = params["validation_split"]
+        self.epochs = params["epochs"]
+        self.metric = params["metric"]
         self.params = params
 
         # First hidden layer with input shape
         self.model = tf.keras.models.Sequential()
         self.model.add(
             tf.keras.layers.Dense(
-                params["number_of_neurons"][0],
+                params["nn_architecture"][0],
                 input_shape=(params["input_size"],),
                 activation=params["activation"],
             )
         )
         # Second hidden layer to number of hidden layers
-        for i in range(1, len(params["number_of_neurons"])):
+        for i in range(1, len(params["nn_architecture"])):
             self.model.add(
                 tf.keras.layers.Dense(
-                    params["number_of_neurons"][i], activation=params["activation"]
+                    params["nn_architecture"][i], activation=params["activation"]
                 )
             )
 
@@ -43,7 +46,7 @@ class NN:
         self.model.compile(
             loss=self.loss_function,
             optimizer=tf.keras.optimizers.Adam(learning_rate=params["learnRate"]),
-            metrics=["accuracy"],
+            metrics=[params["metric"]],
         )
 
     def tune(config, data_x, data_y):
@@ -55,12 +58,14 @@ class NN:
             data_x,
             data_y,
             verbose=0,
-            validation_split=0.3,
+            validation_split=config["validation_split"],
             batch_size=config["batch_size"],
-            epochs=100,
+            epochs=config["epochs"],
             callbacks=[
                 es,
-                ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
+                ReportCheckpointCallback(
+                    metrics={f"mean_{config['metric']}": config["metric"]}
+                ),
             ],
         )
 
@@ -71,12 +76,12 @@ class NN:
             data_x,
             data_y,
             verbose=0,
-            validation_split=0.3,
+            validation_split=self.validation_split,
             batch_size=self.batch_size,
-            epochs=100,
+            epochs=self.epochs,
             callbacks=[
                 es,
-                ReportCheckpointCallback(metrics={"mean_accuracy": "accuracy"}),
+                ReportCheckpointCallback(metrics={f"mean_{self.metric}": self.metric}),
             ],
         )
 

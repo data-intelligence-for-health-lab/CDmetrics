@@ -45,6 +45,9 @@ def compute_metric(data, number_of_NNs, target_column, resources):
                 "activation": "relu",
                 "num_classes": n_classes,
                 "input_size": len(X.columns),
+                "metric": "accuracy",
+                "validation_split": 0.2,
+                "epochs": 100,
             }
         )
 
@@ -55,7 +58,7 @@ def compute_metric(data, number_of_NNs, target_column, resources):
             n_neureons_in_a_hidden_layer += 1
             predictions = []
             with multiprocessing.Pool(processes=num_cpus) as pool:
-                params["number_of_neurons"] = [n_neureons_in_a_hidden_layer]
+                params["nn_architecture"] = [n_neureons_in_a_hidden_layer]
                 async_results = [
                     pool.apply_async(worker, args=(X, y, X_test, params))
                     for _ in range(number_of_NNs)
