@@ -38,7 +38,7 @@ def compute_metric(data, number_of_NNs, target_column, custom, resources):
         y = np.delete(y_overall, index, axis=0)
 
         learn_rate = custom.get("learnRate", 0.01)
-        batch_size = custom.get("batch_size", 32)
+        batch_size = custom.get("batch_size", 64)
         activation = custom.get("activation", "relu")
         metric = custom.get("metric", "accuracy")
         validation_split = custom.get("validation_split", 0.3)
