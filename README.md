@@ -80,7 +80,7 @@ resources = {"CPU": 10, "GPU": 0}
 CDpu.compute_metric(data, target_column_name, number_of_predictions, custom, resources)
 ```
 
-- Hyperparameter Tuning and Customization
+#### Hyperparameter Tuning and Customization
 For CDdm and CDpu, grid search is supported for hyperparameter tuning.
 Users can modify the search space and model configuration by changing the parameter custom.
 The parameters that users can customize, along with their default values, are listed below:
