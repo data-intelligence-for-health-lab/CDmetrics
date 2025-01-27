@@ -94,8 +94,8 @@ The parameters that users can customize, along with their default values, are li
   - epochs(Epochs):100
 
 
-For CDmc, users can customize the search space and model configuration in CDmetrics/CDmc.py.
-The default parameters are listed below:
+For CDmc, users can customize the search space and model configuration by changing the parameter custom.
+The parameters that users can customize, along with their default values, are listed below:
   - learnRate(Learning rate):0.01
   - batch_size(Batch size):64
   - activation(Activation function):relu
