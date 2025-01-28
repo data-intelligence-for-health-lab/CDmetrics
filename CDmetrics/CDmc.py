@@ -12,7 +12,7 @@ def worker(train_data_x, train_data_y, test_data_x, config):
     return prediction
 
 
-def compute_metric(data, number_of_NNs, target_column, resources):
+def compute_metric(data, number_of_NNs, target_column, custom, resources):
     num_cpus = resources.get("CPU")
 
     max_hidden_neurons = round(len(data) * 0.01)
@@ -37,14 +37,24 @@ def compute_metric(data, number_of_NNs, target_column, resources):
         X = X_overall.drop(index=[index])
         y = np.delete(y_overall, index, axis=0)
 
+        learn_rate = custom.get("learnRate", 0.01)
+        batch_size = custom.get("batch_size", 64)
+        activation = custom.get("activation", "relu")
+        metric = custom.get("metric", "accuracy")
+        validation_split = custom.get("validation_split", 0.3)
+        epochs = custom.get("epochs", 100)
+
         params = {}
         params.update(
             {
-                "learnRate": 0.01,
-                "batch_size": 32,
-                "activation": "relu",
+                "learnRate": learn_rate,
+                "batch_size": batch_size,
+                "activation": activation,
                 "num_classes": n_classes,
                 "input_size": len(X.columns),
+                "metric": metric,
+                "validation_split": validation_split,
+                "epochs": epochs,
             }
         )
 
@@ -55,7 +65,7 @@ def compute_metric(data, number_of_NNs, target_column, resources):
             n_neureons_in_a_hidden_layer += 1
             predictions = []
             with multiprocessing.Pool(processes=num_cpus) as pool:
-                params["number_of_neurons"] = [n_neureons_in_a_hidden_layer]
+                params["nn_architecture"] = [n_neureons_in_a_hidden_layer]
                 async_results = [
                     pool.apply_async(worker, args=(X, y, X_test, params))
                     for _ in range(number_of_NNs)

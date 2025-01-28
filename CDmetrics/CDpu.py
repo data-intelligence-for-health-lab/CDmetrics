@@ -14,9 +14,7 @@ def worker(train_data_x, train_data_y, test_data_x, config):
     return prediction
 
 
-def compute_metric(
-    data, target_column, number_of_predictions, max_layers, max_units, resources
-):
+def compute_metric(data, target_column, number_of_predictions, custom, resources):
     num_cpus = resources.get("CPU")
     difficulity = []
     data = data.reset_index(drop=True)
@@ -35,7 +33,7 @@ def compute_metric(
             train_data_y = to_categorical(train_data_y, num_classes=n_classes)
 
         best_config = tune_parameters(
-            NN.tune, train_data, target_column, max_layers, max_units, resources
+            NN.tune, train_data, target_column, custom, resources
         )
 
         predictions = []
